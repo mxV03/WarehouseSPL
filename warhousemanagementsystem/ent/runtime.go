@@ -2,8 +2,23 @@
 
 package ent
 
+import (
+	"github.com/mxV03/warhousemanagementsystem/ent/item"
+	"github.com/mxV03/warhousemanagementsystem/ent/schema"
+)
+
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	itemFields := schema.Item{}.Fields()
+	_ = itemFields
+	// itemDescSKU is the schema descriptor for SKU field.
+	itemDescSKU := itemFields[0].Descriptor()
+	// item.SKUValidator is a validator for the "SKU" field. It is called by the builders before save.
+	item.SKUValidator = itemDescSKU.Validators[0].(func(string) error)
+	// itemDescName is the schema descriptor for name field.
+	itemDescName := itemFields[1].Descriptor()
+	// item.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	item.NameValidator = itemDescName.Validators[0].(func(string) error)
 }

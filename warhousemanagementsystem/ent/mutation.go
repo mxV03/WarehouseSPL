@@ -10,6 +10,7 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
 )
 
@@ -31,6 +32,9 @@ type ItemMutation struct {
 	op            Op
 	typ           string
 	id            *int
+	_SKU          *string
+	name          *string
+	description   *string
 	clearedFields map[string]struct{}
 	done          bool
 	oldValue      func(context.Context) (*Item, error)
@@ -135,6 +139,127 @@ func (m *ItemMutation) IDs(ctx context.Context) ([]int, error) {
 	}
 }
 
+// SetSKU sets the "SKU" field.
+func (m *ItemMutation) SetSKU(s string) {
+	m._SKU = &s
+}
+
+// SKU returns the value of the "SKU" field in the mutation.
+func (m *ItemMutation) SKU() (r string, exists bool) {
+	v := m._SKU
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSKU returns the old "SKU" field's value of the Item entity.
+// If the Item object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ItemMutation) OldSKU(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSKU is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSKU requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSKU: %w", err)
+	}
+	return oldValue.SKU, nil
+}
+
+// ResetSKU resets all changes to the "SKU" field.
+func (m *ItemMutation) ResetSKU() {
+	m._SKU = nil
+}
+
+// SetName sets the "name" field.
+func (m *ItemMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ItemMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Item entity.
+// If the Item object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ItemMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ItemMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *ItemMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *ItemMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the Item entity.
+// If the Item object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ItemMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ClearDescription clears the value of the "description" field.
+func (m *ItemMutation) ClearDescription() {
+	m.description = nil
+	m.clearedFields[item.FieldDescription] = struct{}{}
+}
+
+// DescriptionCleared returns if the "description" field was cleared in this mutation.
+func (m *ItemMutation) DescriptionCleared() bool {
+	_, ok := m.clearedFields[item.FieldDescription]
+	return ok
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *ItemMutation) ResetDescription() {
+	m.description = nil
+	delete(m.clearedFields, item.FieldDescription)
+}
+
 // Where appends a list predicates to the ItemMutation builder.
 func (m *ItemMutation) Where(ps ...predicate.Item) {
 	m.predicates = append(m.predicates, ps...)
@@ -169,7 +294,16 @@ func (m *ItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ItemMutation) Fields() []string {
-	fields := make([]string, 0, 0)
+	fields := make([]string, 0, 3)
+	if m._SKU != nil {
+		fields = append(fields, item.FieldSKU)
+	}
+	if m.name != nil {
+		fields = append(fields, item.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, item.FieldDescription)
+	}
 	return fields
 }
 
@@ -177,6 +311,14 @@ func (m *ItemMutation) Fields() []string {
 // return value indicates that this field was not set, or was not defined in the
 // schema.
 func (m *ItemMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case item.FieldSKU:
+		return m.SKU()
+	case item.FieldName:
+		return m.Name()
+	case item.FieldDescription:
+		return m.Description()
+	}
 	return nil, false
 }
 
@@ -184,6 +326,14 @@ func (m *ItemMutation) Field(name string) (ent.Value, bool) {
 // returned if the mutation operation is not UpdateOne, or the query to the
 // database failed.
 func (m *ItemMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case item.FieldSKU:
+		return m.OldSKU(ctx)
+	case item.FieldName:
+		return m.OldName(ctx)
+	case item.FieldDescription:
+		return m.OldDescription(ctx)
+	}
 	return nil, fmt.Errorf("unknown Item field %s", name)
 }
 
@@ -192,6 +342,27 @@ func (m *ItemMutation) OldField(ctx context.Context, name string) (ent.Value, er
 // type.
 func (m *ItemMutation) SetField(name string, value ent.Value) error {
 	switch name {
+	case item.FieldSKU:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSKU(v)
+		return nil
+	case item.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case item.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Item field %s", name)
 }
@@ -213,13 +384,19 @@ func (m *ItemMutation) AddedField(name string) (ent.Value, bool) {
 // the field is not defined in the schema, or if the type mismatched the field
 // type.
 func (m *ItemMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Item numeric field %s", name)
 }
 
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ItemMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(item.FieldDescription) {
+		fields = append(fields, item.FieldDescription)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -232,12 +409,28 @@ func (m *ItemMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ItemMutation) ClearField(name string) error {
+	switch name {
+	case item.FieldDescription:
+		m.ClearDescription()
+		return nil
+	}
 	return fmt.Errorf("unknown Item nullable field %s", name)
 }
 
 // ResetField resets all changes in the mutation for the field with the given name.
 // It returns an error if the field is not defined in the schema.
 func (m *ItemMutation) ResetField(name string) error {
+	switch name {
+	case item.FieldSKU:
+		m.ResetSKU()
+		return nil
+	case item.FieldName:
+		m.ResetName()
+		return nil
+	case item.FieldDescription:
+		m.ResetDescription()
+		return nil
+	}
 	return fmt.Errorf("unknown Item field %s", name)
 }
 

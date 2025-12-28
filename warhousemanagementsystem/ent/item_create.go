@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -16,6 +17,32 @@ type ItemCreate struct {
 	config
 	mutation *ItemMutation
 	hooks    []Hook
+}
+
+// SetSKU sets the "SKU" field.
+func (_c *ItemCreate) SetSKU(v string) *ItemCreate {
+	_c.mutation.SetSKU(v)
+	return _c
+}
+
+// SetName sets the "name" field.
+func (_c *ItemCreate) SetName(v string) *ItemCreate {
+	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetDescription sets the "description" field.
+func (_c *ItemCreate) SetDescription(v string) *ItemCreate {
+	_c.mutation.SetDescription(v)
+	return _c
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_c *ItemCreate) SetNillableDescription(v *string) *ItemCreate {
+	if v != nil {
+		_c.SetDescription(*v)
+	}
+	return _c
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -52,6 +79,22 @@ func (_c *ItemCreate) ExecX(ctx context.Context) {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ItemCreate) check() error {
+	if _, ok := _c.mutation.SKU(); !ok {
+		return &ValidationError{Name: "SKU", err: errors.New(`ent: missing required field "Item.SKU"`)}
+	}
+	if v, ok := _c.mutation.SKU(); ok {
+		if err := item.SKUValidator(v); err != nil {
+			return &ValidationError{Name: "SKU", err: fmt.Errorf(`ent: validator failed for field "Item.SKU": %w`, err)}
+		}
+	}
+	if _, ok := _c.mutation.Name(); !ok {
+		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Item.name"`)}
+	}
+	if v, ok := _c.mutation.Name(); ok {
+		if err := item.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Item.name": %w`, err)}
+		}
+	}
 	return nil
 }
 
@@ -78,6 +121,18 @@ func (_c *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 		_node = &Item{config: _c.config}
 		_spec = sqlgraph.NewCreateSpec(item.Table, sqlgraph.NewFieldSpec(item.FieldID, field.TypeInt))
 	)
+	if value, ok := _c.mutation.SKU(); ok {
+		_spec.SetField(item.FieldSKU, field.TypeString, value)
+		_node.SKU = value
+	}
+	if value, ok := _c.mutation.Name(); ok {
+		_spec.SetField(item.FieldName, field.TypeString, value)
+		_node.Name = value
+	}
+	if value, ok := _c.mutation.Description(); ok {
+		_spec.SetField(item.FieldDescription, field.TypeString, value)
+		_node.Description = value
+	}
 	return _node, _spec
 }
 

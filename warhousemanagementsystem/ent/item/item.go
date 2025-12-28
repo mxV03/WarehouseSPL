@@ -11,6 +11,12 @@ const (
 	Label = "item"
 	// FieldID holds the string denoting the id field in the database.
 	FieldID = "id"
+	// FieldSKU holds the string denoting the sku field in the database.
+	FieldSKU = "sku"
+	// FieldName holds the string denoting the name field in the database.
+	FieldName = "name"
+	// FieldDescription holds the string denoting the description field in the database.
+	FieldDescription = "description"
 	// Table holds the table name of the item in the database.
 	Table = "items"
 )
@@ -18,6 +24,9 @@ const (
 // Columns holds all SQL columns for item fields.
 var Columns = []string{
 	FieldID,
+	FieldSKU,
+	FieldName,
+	FieldDescription,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -30,10 +39,32 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// SKUValidator is a validator for the "SKU" field. It is called by the builders before save.
+	SKUValidator func(string) error
+	// NameValidator is a validator for the "name" field. It is called by the builders before save.
+	NameValidator func(string) error
+)
+
 // OrderOption defines the ordering options for the Item queries.
 type OrderOption func(*sql.Selector)
 
 // ByID orders the results by the id field.
 func ByID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldID, opts...).ToFunc()
+}
+
+// BySKU orders the results by the SKU field.
+func BySKU(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSKU, opts...).ToFunc()
+}
+
+// ByName orders the results by the name field.
+func ByName(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldName, opts...).ToFunc()
+}
+
+// ByDescription orders the results by the description field.
+func ByDescription(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldDescription, opts...).ToFunc()
 }

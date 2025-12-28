@@ -52,6 +52,226 @@ func IDLTE(id int) predicate.Item {
 	return predicate.Item(sql.FieldLTE(FieldID, id))
 }
 
+// SKU applies equality check predicate on the "SKU" field. It's identical to SKUEQ.
+func SKU(v string) predicate.Item {
+	return predicate.Item(sql.FieldEQ(FieldSKU, v))
+}
+
+// Name applies equality check predicate on the "name" field. It's identical to NameEQ.
+func Name(v string) predicate.Item {
+	return predicate.Item(sql.FieldEQ(FieldName, v))
+}
+
+// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
+func Description(v string) predicate.Item {
+	return predicate.Item(sql.FieldEQ(FieldDescription, v))
+}
+
+// SKUEQ applies the EQ predicate on the "SKU" field.
+func SKUEQ(v string) predicate.Item {
+	return predicate.Item(sql.FieldEQ(FieldSKU, v))
+}
+
+// SKUNEQ applies the NEQ predicate on the "SKU" field.
+func SKUNEQ(v string) predicate.Item {
+	return predicate.Item(sql.FieldNEQ(FieldSKU, v))
+}
+
+// SKUIn applies the In predicate on the "SKU" field.
+func SKUIn(vs ...string) predicate.Item {
+	return predicate.Item(sql.FieldIn(FieldSKU, vs...))
+}
+
+// SKUNotIn applies the NotIn predicate on the "SKU" field.
+func SKUNotIn(vs ...string) predicate.Item {
+	return predicate.Item(sql.FieldNotIn(FieldSKU, vs...))
+}
+
+// SKUGT applies the GT predicate on the "SKU" field.
+func SKUGT(v string) predicate.Item {
+	return predicate.Item(sql.FieldGT(FieldSKU, v))
+}
+
+// SKUGTE applies the GTE predicate on the "SKU" field.
+func SKUGTE(v string) predicate.Item {
+	return predicate.Item(sql.FieldGTE(FieldSKU, v))
+}
+
+// SKULT applies the LT predicate on the "SKU" field.
+func SKULT(v string) predicate.Item {
+	return predicate.Item(sql.FieldLT(FieldSKU, v))
+}
+
+// SKULTE applies the LTE predicate on the "SKU" field.
+func SKULTE(v string) predicate.Item {
+	return predicate.Item(sql.FieldLTE(FieldSKU, v))
+}
+
+// SKUContains applies the Contains predicate on the "SKU" field.
+func SKUContains(v string) predicate.Item {
+	return predicate.Item(sql.FieldContains(FieldSKU, v))
+}
+
+// SKUHasPrefix applies the HasPrefix predicate on the "SKU" field.
+func SKUHasPrefix(v string) predicate.Item {
+	return predicate.Item(sql.FieldHasPrefix(FieldSKU, v))
+}
+
+// SKUHasSuffix applies the HasSuffix predicate on the "SKU" field.
+func SKUHasSuffix(v string) predicate.Item {
+	return predicate.Item(sql.FieldHasSuffix(FieldSKU, v))
+}
+
+// SKUEqualFold applies the EqualFold predicate on the "SKU" field.
+func SKUEqualFold(v string) predicate.Item {
+	return predicate.Item(sql.FieldEqualFold(FieldSKU, v))
+}
+
+// SKUContainsFold applies the ContainsFold predicate on the "SKU" field.
+func SKUContainsFold(v string) predicate.Item {
+	return predicate.Item(sql.FieldContainsFold(FieldSKU, v))
+}
+
+// NameEQ applies the EQ predicate on the "name" field.
+func NameEQ(v string) predicate.Item {
+	return predicate.Item(sql.FieldEQ(FieldName, v))
+}
+
+// NameNEQ applies the NEQ predicate on the "name" field.
+func NameNEQ(v string) predicate.Item {
+	return predicate.Item(sql.FieldNEQ(FieldName, v))
+}
+
+// NameIn applies the In predicate on the "name" field.
+func NameIn(vs ...string) predicate.Item {
+	return predicate.Item(sql.FieldIn(FieldName, vs...))
+}
+
+// NameNotIn applies the NotIn predicate on the "name" field.
+func NameNotIn(vs ...string) predicate.Item {
+	return predicate.Item(sql.FieldNotIn(FieldName, vs...))
+}
+
+// NameGT applies the GT predicate on the "name" field.
+func NameGT(v string) predicate.Item {
+	return predicate.Item(sql.FieldGT(FieldName, v))
+}
+
+// NameGTE applies the GTE predicate on the "name" field.
+func NameGTE(v string) predicate.Item {
+	return predicate.Item(sql.FieldGTE(FieldName, v))
+}
+
+// NameLT applies the LT predicate on the "name" field.
+func NameLT(v string) predicate.Item {
+	return predicate.Item(sql.FieldLT(FieldName, v))
+}
+
+// NameLTE applies the LTE predicate on the "name" field.
+func NameLTE(v string) predicate.Item {
+	return predicate.Item(sql.FieldLTE(FieldName, v))
+}
+
+// NameContains applies the Contains predicate on the "name" field.
+func NameContains(v string) predicate.Item {
+	return predicate.Item(sql.FieldContains(FieldName, v))
+}
+
+// NameHasPrefix applies the HasPrefix predicate on the "name" field.
+func NameHasPrefix(v string) predicate.Item {
+	return predicate.Item(sql.FieldHasPrefix(FieldName, v))
+}
+
+// NameHasSuffix applies the HasSuffix predicate on the "name" field.
+func NameHasSuffix(v string) predicate.Item {
+	return predicate.Item(sql.FieldHasSuffix(FieldName, v))
+}
+
+// NameEqualFold applies the EqualFold predicate on the "name" field.
+func NameEqualFold(v string) predicate.Item {
+	return predicate.Item(sql.FieldEqualFold(FieldName, v))
+}
+
+// NameContainsFold applies the ContainsFold predicate on the "name" field.
+func NameContainsFold(v string) predicate.Item {
+	return predicate.Item(sql.FieldContainsFold(FieldName, v))
+}
+
+// DescriptionEQ applies the EQ predicate on the "description" field.
+func DescriptionEQ(v string) predicate.Item {
+	return predicate.Item(sql.FieldEQ(FieldDescription, v))
+}
+
+// DescriptionNEQ applies the NEQ predicate on the "description" field.
+func DescriptionNEQ(v string) predicate.Item {
+	return predicate.Item(sql.FieldNEQ(FieldDescription, v))
+}
+
+// DescriptionIn applies the In predicate on the "description" field.
+func DescriptionIn(vs ...string) predicate.Item {
+	return predicate.Item(sql.FieldIn(FieldDescription, vs...))
+}
+
+// DescriptionNotIn applies the NotIn predicate on the "description" field.
+func DescriptionNotIn(vs ...string) predicate.Item {
+	return predicate.Item(sql.FieldNotIn(FieldDescription, vs...))
+}
+
+// DescriptionGT applies the GT predicate on the "description" field.
+func DescriptionGT(v string) predicate.Item {
+	return predicate.Item(sql.FieldGT(FieldDescription, v))
+}
+
+// DescriptionGTE applies the GTE predicate on the "description" field.
+func DescriptionGTE(v string) predicate.Item {
+	return predicate.Item(sql.FieldGTE(FieldDescription, v))
+}
+
+// DescriptionLT applies the LT predicate on the "description" field.
+func DescriptionLT(v string) predicate.Item {
+	return predicate.Item(sql.FieldLT(FieldDescription, v))
+}
+
+// DescriptionLTE applies the LTE predicate on the "description" field.
+func DescriptionLTE(v string) predicate.Item {
+	return predicate.Item(sql.FieldLTE(FieldDescription, v))
+}
+
+// DescriptionContains applies the Contains predicate on the "description" field.
+func DescriptionContains(v string) predicate.Item {
+	return predicate.Item(sql.FieldContains(FieldDescription, v))
+}
+
+// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
+func DescriptionHasPrefix(v string) predicate.Item {
+	return predicate.Item(sql.FieldHasPrefix(FieldDescription, v))
+}
+
+// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
+func DescriptionHasSuffix(v string) predicate.Item {
+	return predicate.Item(sql.FieldHasSuffix(FieldDescription, v))
+}
+
+// DescriptionIsNil applies the IsNil predicate on the "description" field.
+func DescriptionIsNil() predicate.Item {
+	return predicate.Item(sql.FieldIsNull(FieldDescription))
+}
+
+// DescriptionNotNil applies the NotNil predicate on the "description" field.
+func DescriptionNotNil() predicate.Item {
+	return predicate.Item(sql.FieldNotNull(FieldDescription))
+}
+
+// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
+func DescriptionEqualFold(v string) predicate.Item {
+	return predicate.Item(sql.FieldEqualFold(FieldDescription, v))
+}
+
+// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
+func DescriptionContainsFold(v string) predicate.Item {
+	return predicate.Item(sql.FieldContainsFold(FieldDescription, v))
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Item) predicate.Item {
 	return predicate.Item(sql.AndPredicates(predicates...))

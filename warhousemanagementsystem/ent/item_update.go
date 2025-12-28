@@ -27,6 +27,54 @@ func (_u *ItemUpdate) Where(ps ...predicate.Item) *ItemUpdate {
 	return _u
 }
 
+// SetSKU sets the "SKU" field.
+func (_u *ItemUpdate) SetSKU(v string) *ItemUpdate {
+	_u.mutation.SetSKU(v)
+	return _u
+}
+
+// SetNillableSKU sets the "SKU" field if the given value is not nil.
+func (_u *ItemUpdate) SetNillableSKU(v *string) *ItemUpdate {
+	if v != nil {
+		_u.SetSKU(*v)
+	}
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *ItemUpdate) SetName(v string) *ItemUpdate {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *ItemUpdate) SetNillableName(v *string) *ItemUpdate {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetDescription sets the "description" field.
+func (_u *ItemUpdate) SetDescription(v string) *ItemUpdate {
+	_u.mutation.SetDescription(v)
+	return _u
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_u *ItemUpdate) SetNillableDescription(v *string) *ItemUpdate {
+	if v != nil {
+		_u.SetDescription(*v)
+	}
+	return _u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (_u *ItemUpdate) ClearDescription() *ItemUpdate {
+	_u.mutation.ClearDescription()
+	return _u
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (_u *ItemUpdate) Mutation() *ItemMutation {
 	return _u.mutation
@@ -59,7 +107,25 @@ func (_u *ItemUpdate) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *ItemUpdate) check() error {
+	if v, ok := _u.mutation.SKU(); ok {
+		if err := item.SKUValidator(v); err != nil {
+			return &ValidationError{Name: "SKU", err: fmt.Errorf(`ent: validator failed for field "Item.SKU": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := item.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Item.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *ItemUpdate) sqlSave(ctx context.Context) (_node int, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(item.Table, item.Columns, sqlgraph.NewFieldSpec(item.FieldID, field.TypeInt))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
@@ -67,6 +133,18 @@ func (_u *ItemUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.SKU(); ok {
+		_spec.SetField(item.FieldSKU, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(item.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(item.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(item.FieldDescription, field.TypeString)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -86,6 +164,54 @@ type ItemUpdateOne struct {
 	fields   []string
 	hooks    []Hook
 	mutation *ItemMutation
+}
+
+// SetSKU sets the "SKU" field.
+func (_u *ItemUpdateOne) SetSKU(v string) *ItemUpdateOne {
+	_u.mutation.SetSKU(v)
+	return _u
+}
+
+// SetNillableSKU sets the "SKU" field if the given value is not nil.
+func (_u *ItemUpdateOne) SetNillableSKU(v *string) *ItemUpdateOne {
+	if v != nil {
+		_u.SetSKU(*v)
+	}
+	return _u
+}
+
+// SetName sets the "name" field.
+func (_u *ItemUpdateOne) SetName(v string) *ItemUpdateOne {
+	_u.mutation.SetName(v)
+	return _u
+}
+
+// SetNillableName sets the "name" field if the given value is not nil.
+func (_u *ItemUpdateOne) SetNillableName(v *string) *ItemUpdateOne {
+	if v != nil {
+		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetDescription sets the "description" field.
+func (_u *ItemUpdateOne) SetDescription(v string) *ItemUpdateOne {
+	_u.mutation.SetDescription(v)
+	return _u
+}
+
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (_u *ItemUpdateOne) SetNillableDescription(v *string) *ItemUpdateOne {
+	if v != nil {
+		_u.SetDescription(*v)
+	}
+	return _u
+}
+
+// ClearDescription clears the value of the "description" field.
+func (_u *ItemUpdateOne) ClearDescription() *ItemUpdateOne {
+	_u.mutation.ClearDescription()
+	return _u
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -133,7 +259,25 @@ func (_u *ItemUpdateOne) ExecX(ctx context.Context) {
 	}
 }
 
+// check runs all checks and user-defined validators on the builder.
+func (_u *ItemUpdateOne) check() error {
+	if v, ok := _u.mutation.SKU(); ok {
+		if err := item.SKUValidator(v); err != nil {
+			return &ValidationError{Name: "SKU", err: fmt.Errorf(`ent: validator failed for field "Item.SKU": %w`, err)}
+		}
+	}
+	if v, ok := _u.mutation.Name(); ok {
+		if err := item.NameValidator(v); err != nil {
+			return &ValidationError{Name: "name", err: fmt.Errorf(`ent: validator failed for field "Item.name": %w`, err)}
+		}
+	}
+	return nil
+}
+
 func (_u *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) {
+	if err := _u.check(); err != nil {
+		return _node, err
+	}
 	_spec := sqlgraph.NewUpdateSpec(item.Table, item.Columns, sqlgraph.NewFieldSpec(item.FieldID, field.TypeInt))
 	id, ok := _u.mutation.ID()
 	if !ok {
@@ -158,6 +302,18 @@ func (_u *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.SKU(); ok {
+		_spec.SetField(item.FieldSKU, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Name(); ok {
+		_spec.SetField(item.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Description(); ok {
+		_spec.SetField(item.FieldDescription, field.TypeString, value)
+	}
+	if _u.mutation.DescriptionCleared() {
+		_spec.ClearField(item.FieldDescription, field.TypeString)
 	}
 	_node = &Item{config: _u.config}
 	_spec.Assign = _node.assignValues
