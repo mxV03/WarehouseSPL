@@ -8,3 +8,6 @@ import (
 
 // Item is the predicate function for item builders.
 type Item func(*sql.Selector)
+
+// Location is the predicate function for location builders.
+type Location func(*sql.Selector)

@@ -69,22 +69,6 @@ func (s *ItemService) CreateItem(ctx context.Context, sku, name, description str
 	}, nil
 }
 
-func (s *ItemService) GetItemByID(ctx context.Context, id int) (*ItemDTO, error) {
-	itm, err := s.client.Item.Get(ctx, id)
-	if err != nil {
-		if ent.IsNotFound(err) {
-			return nil, ErrItemNotFound
-		}
-		return nil, fmt.Errorf("getting item by ID: %w", err)
-	}
-	return &ItemDTO{
-		ID:          itm.ID,
-		SKU:         itm.SKU,
-		Name:        itm.Name,
-		Description: itm.Description,
-	}, nil
-}
-
 func (s *ItemService) GetItemBySKU(ctx context.Context, sku string) (*ItemDTO, error) {
 	sku = strings.TrimSpace(sku)
 	if sku == "" {

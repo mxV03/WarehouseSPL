@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Item is the client for interacting with the Item builders.
 	Item *ItemClient
+	// Location is the client for interacting with the Location builders.
+	Location *LocationClient
 
 	// lazily loaded.
 	client     *Client
@@ -146,6 +148,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Item = NewItemClient(tx.config)
+	tx.Location = NewLocationClient(tx.config)
 }
 
 // txDriver wraps the given dialect.Tx with a nop dialect.Driver implementation.

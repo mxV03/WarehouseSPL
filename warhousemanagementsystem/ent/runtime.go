@@ -4,6 +4,7 @@ package ent
 
 import (
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
+	"github.com/mxV03/warhousemanagementsystem/ent/location"
 	"github.com/mxV03/warhousemanagementsystem/ent/schema"
 )
 
@@ -21,4 +22,14 @@ func init() {
 	itemDescName := itemFields[1].Descriptor()
 	// item.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	item.NameValidator = itemDescName.Validators[0].(func(string) error)
+	locationFields := schema.Location{}.Fields()
+	_ = locationFields
+	// locationDescCode is the schema descriptor for code field.
+	locationDescCode := locationFields[0].Descriptor()
+	// location.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	location.CodeValidator = locationDescCode.Validators[0].(func(string) error)
+	// locationDescName is the schema descriptor for name field.
+	locationDescName := locationFields[1].Descriptor()
+	// location.NameValidator is a validator for the "name" field. It is called by the builders before save.
+	location.NameValidator = locationDescName.Validators[0].(func(string) error)
 }
