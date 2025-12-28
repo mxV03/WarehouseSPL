@@ -33,6 +33,18 @@ func (f LocationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LocationMutation", m)
 }
 
+// The StockMovementFunc type is an adapter to allow the use of ordinary
+// function as StockMovement mutator.
+type StockMovementFunc func(context.Context, *ent.StockMovementMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f StockMovementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.StockMovementMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StockMovementMutation", m)
+}
+
 // Condition is a hook condition function.
 type Condition func(context.Context, ent.Mutation) bool
 

@@ -33,12 +33,44 @@ var (
 		Columns:    LocationsColumns,
 		PrimaryKey: []*schema.Column{LocationsColumns[0]},
 	}
+	// StockMovementsColumns holds the columns for the "stock_movements" table.
+	StockMovementsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "type", Type: field.TypeString},
+		{Name: "quantity", Type: field.TypeInt},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "item_movements", Type: field.TypeInt},
+		{Name: "location_movements", Type: field.TypeInt},
+	}
+	// StockMovementsTable holds the schema information for the "stock_movements" table.
+	StockMovementsTable = &schema.Table{
+		Name:       "stock_movements",
+		Columns:    StockMovementsColumns,
+		PrimaryKey: []*schema.Column{StockMovementsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "stock_movements_items_movements",
+				Columns:    []*schema.Column{StockMovementsColumns[4]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "stock_movements_locations_movements",
+				Columns:    []*schema.Column{StockMovementsColumns[5]},
+				RefColumns: []*schema.Column{LocationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ItemsTable,
 		LocationsTable,
+		StockMovementsTable,
 	}
 )
 
 func init() {
+	StockMovementsTable.ForeignKeys[0].RefTable = ItemsTable
+	StockMovementsTable.ForeignKeys[1].RefTable = LocationsTable
 }

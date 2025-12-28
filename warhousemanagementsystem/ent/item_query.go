@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -13,15 +14,17 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // ItemQuery is the builder for querying Item entities.
 type ItemQuery struct {
 	config
-	ctx        *QueryContext
-	order      []item.OrderOption
-	inters     []Interceptor
-	predicates []predicate.Item
+	ctx           *QueryContext
+	order         []item.OrderOption
+	inters        []Interceptor
+	predicates    []predicate.Item
+	withMovements *StockMovementQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -56,6 +59,28 @@ func (_q *ItemQuery) Unique(unique bool) *ItemQuery {
 func (_q *ItemQuery) Order(o ...item.OrderOption) *ItemQuery {
 	_q.order = append(_q.order, o...)
 	return _q
+}
+
+// QueryMovements chains the current query on the "movements" edge.
+func (_q *ItemQuery) QueryMovements() *StockMovementQuery {
+	query := (&StockMovementClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, selector),
+			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.MovementsTable, item.MovementsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
 }
 
 // First returns the first Item entity from the query.
@@ -245,15 +270,27 @@ func (_q *ItemQuery) Clone() *ItemQuery {
 		return nil
 	}
 	return &ItemQuery{
-		config:     _q.config,
-		ctx:        _q.ctx.Clone(),
-		order:      append([]item.OrderOption{}, _q.order...),
-		inters:     append([]Interceptor{}, _q.inters...),
-		predicates: append([]predicate.Item{}, _q.predicates...),
+		config:        _q.config,
+		ctx:           _q.ctx.Clone(),
+		order:         append([]item.OrderOption{}, _q.order...),
+		inters:        append([]Interceptor{}, _q.inters...),
+		predicates:    append([]predicate.Item{}, _q.predicates...),
+		withMovements: _q.withMovements.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
+}
+
+// WithMovements tells the query-builder to eager-load the nodes that are connected to
+// the "movements" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ItemQuery) WithMovements(opts ...func(*StockMovementQuery)) *ItemQuery {
+	query := (&StockMovementClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withMovements = query
+	return _q
 }
 
 // GroupBy is used to group vertices by one or more fields/columns.
@@ -332,8 +369,11 @@ func (_q *ItemQuery) prepareQuery(ctx context.Context) error {
 
 func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, error) {
 	var (
-		nodes = []*Item{}
-		_spec = _q.querySpec()
+		nodes       = []*Item{}
+		_spec       = _q.querySpec()
+		loadedTypes = [1]bool{
+			_q.withMovements != nil,
+		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Item).scanValues(nil, columns)
@@ -341,6 +381,7 @@ func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, e
 	_spec.Assign = func(columns []string, values []any) error {
 		node := &Item{config: _q.config}
 		nodes = append(nodes, node)
+		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
 	}
 	for i := range hooks {
@@ -352,7 +393,46 @@ func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
+	if query := _q.withMovements; query != nil {
+		if err := _q.loadMovements(ctx, query, nodes,
+			func(n *Item) { n.Edges.Movements = []*StockMovement{} },
+			func(n *Item, e *StockMovement) { n.Edges.Movements = append(n.Edges.Movements, e) }); err != nil {
+			return nil, err
+		}
+	}
 	return nodes, nil
+}
+
+func (_q *ItemQuery) loadMovements(ctx context.Context, query *StockMovementQuery, nodes []*Item, init func(*Item), assign func(*Item, *StockMovement)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Item)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.StockMovement(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(item.MovementsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.item_movements
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "item_movements" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "item_movements" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
 }
 
 func (_q *ItemQuery) sqlCount(ctx context.Context) (int, error) {

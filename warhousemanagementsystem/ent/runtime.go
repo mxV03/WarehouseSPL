@@ -3,9 +3,12 @@
 package ent
 
 import (
+	"time"
+
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
 	"github.com/mxV03/warhousemanagementsystem/ent/schema"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // The init function reads all schema descriptors with runtime code
@@ -32,4 +35,18 @@ func init() {
 	locationDescName := locationFields[1].Descriptor()
 	// location.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	location.NameValidator = locationDescName.Validators[0].(func(string) error)
+	stockmovementFields := schema.StockMovement{}.Fields()
+	_ = stockmovementFields
+	// stockmovementDescType is the schema descriptor for type field.
+	stockmovementDescType := stockmovementFields[0].Descriptor()
+	// stockmovement.TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	stockmovement.TypeValidator = stockmovementDescType.Validators[0].(func(string) error)
+	// stockmovementDescQuantity is the schema descriptor for quantity field.
+	stockmovementDescQuantity := stockmovementFields[1].Descriptor()
+	// stockmovement.QuantityValidator is a validator for the "quantity" field. It is called by the builders before save.
+	stockmovement.QuantityValidator = stockmovementDescQuantity.Validators[0].(func(int) error)
+	// stockmovementDescCreatedAt is the schema descriptor for created_at field.
+	stockmovementDescCreatedAt := stockmovementFields[2].Descriptor()
+	// stockmovement.DefaultCreatedAt holds the default value on creation for the created_at field.
+	stockmovement.DefaultCreatedAt = stockmovementDescCreatedAt.Default.(func() time.Time)
 }

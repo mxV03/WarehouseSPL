@@ -2,6 +2,7 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
@@ -23,5 +24,7 @@ func (Location) Fields() []ent.Field {
 
 // Edges of the Location.
 func (Location) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.To("movements", StockMovement.Type),
+	}
 }

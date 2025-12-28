@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // ent aliases to avoid import conflicts in user's code.
@@ -74,8 +75,9 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			item.Table:     item.ValidColumn,
-			location.Table: location.ValidColumn,
+			item.Table:          item.ValidColumn,
+			location.Table:      location.ValidColumn,
+			stockmovement.Table: stockmovement.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

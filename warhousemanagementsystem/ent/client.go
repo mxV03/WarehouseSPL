@@ -14,8 +14,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // Client is the client that holds all ent builders.
@@ -27,6 +29,8 @@ type Client struct {
 	Item *ItemClient
 	// Location is the client for interacting with the Location builders.
 	Location *LocationClient
+	// StockMovement is the client for interacting with the StockMovement builders.
+	StockMovement *StockMovementClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -40,6 +44,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Item = NewItemClient(c.config)
 	c.Location = NewLocationClient(c.config)
+	c.StockMovement = NewStockMovementClient(c.config)
 }
 
 type (
@@ -130,10 +135,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Item:     NewItemClient(cfg),
-		Location: NewLocationClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		Item:          NewItemClient(cfg),
+		Location:      NewLocationClient(cfg),
+		StockMovement: NewStockMovementClient(cfg),
 	}, nil
 }
 
@@ -151,10 +157,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:      ctx,
-		config:   cfg,
-		Item:     NewItemClient(cfg),
-		Location: NewLocationClient(cfg),
+		ctx:           ctx,
+		config:        cfg,
+		Item:          NewItemClient(cfg),
+		Location:      NewLocationClient(cfg),
+		StockMovement: NewStockMovementClient(cfg),
 	}, nil
 }
 
@@ -185,6 +192,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.Item.Use(hooks...)
 	c.Location.Use(hooks...)
+	c.StockMovement.Use(hooks...)
 }
 
 // Intercept adds the query interceptors to all the entity clients.
@@ -192,6 +200,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Item.Intercept(interceptors...)
 	c.Location.Intercept(interceptors...)
+	c.StockMovement.Intercept(interceptors...)
 }
 
 // Mutate implements the ent.Mutator interface.
@@ -201,6 +210,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Item.mutate(ctx, m)
 	case *LocationMutation:
 		return c.Location.mutate(ctx, m)
+	case *StockMovementMutation:
+		return c.StockMovement.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
 	}
@@ -312,6 +323,22 @@ func (c *ItemClient) GetX(ctx context.Context, id int) *Item {
 		panic(err)
 	}
 	return obj
+}
+
+// QueryMovements queries the movements edge of a Item.
+func (c *ItemClient) QueryMovements(_m *Item) *StockMovementQuery {
+	query := (&StockMovementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.MovementsTable, item.MovementsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
 }
 
 // Hooks returns the client hooks.
@@ -447,6 +474,22 @@ func (c *LocationClient) GetX(ctx context.Context, id int) *Location {
 	return obj
 }
 
+// QueryMovements queries the movements edge of a Location.
+func (c *LocationClient) QueryMovements(_m *Location) *StockMovementQuery {
+	query := (&StockMovementClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, id),
+			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, location.MovementsTable, location.MovementsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LocationClient) Hooks() []Hook {
 	return c.hooks.Location
@@ -472,12 +515,177 @@ func (c *LocationClient) mutate(ctx context.Context, m *LocationMutation) (Value
 	}
 }
 
+// StockMovementClient is a client for the StockMovement schema.
+type StockMovementClient struct {
+	config
+}
+
+// NewStockMovementClient returns a client for the StockMovement from the given config.
+func NewStockMovementClient(c config) *StockMovementClient {
+	return &StockMovementClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `stockmovement.Hooks(f(g(h())))`.
+func (c *StockMovementClient) Use(hooks ...Hook) {
+	c.hooks.StockMovement = append(c.hooks.StockMovement, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `stockmovement.Intercept(f(g(h())))`.
+func (c *StockMovementClient) Intercept(interceptors ...Interceptor) {
+	c.inters.StockMovement = append(c.inters.StockMovement, interceptors...)
+}
+
+// Create returns a builder for creating a StockMovement entity.
+func (c *StockMovementClient) Create() *StockMovementCreate {
+	mutation := newStockMovementMutation(c.config, OpCreate)
+	return &StockMovementCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of StockMovement entities.
+func (c *StockMovementClient) CreateBulk(builders ...*StockMovementCreate) *StockMovementCreateBulk {
+	return &StockMovementCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *StockMovementClient) MapCreateBulk(slice any, setFunc func(*StockMovementCreate, int)) *StockMovementCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &StockMovementCreateBulk{err: fmt.Errorf("calling to StockMovementClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*StockMovementCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &StockMovementCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for StockMovement.
+func (c *StockMovementClient) Update() *StockMovementUpdate {
+	mutation := newStockMovementMutation(c.config, OpUpdate)
+	return &StockMovementUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *StockMovementClient) UpdateOne(_m *StockMovement) *StockMovementUpdateOne {
+	mutation := newStockMovementMutation(c.config, OpUpdateOne, withStockMovement(_m))
+	return &StockMovementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *StockMovementClient) UpdateOneID(id int) *StockMovementUpdateOne {
+	mutation := newStockMovementMutation(c.config, OpUpdateOne, withStockMovementID(id))
+	return &StockMovementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for StockMovement.
+func (c *StockMovementClient) Delete() *StockMovementDelete {
+	mutation := newStockMovementMutation(c.config, OpDelete)
+	return &StockMovementDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *StockMovementClient) DeleteOne(_m *StockMovement) *StockMovementDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *StockMovementClient) DeleteOneID(id int) *StockMovementDeleteOne {
+	builder := c.Delete().Where(stockmovement.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &StockMovementDeleteOne{builder}
+}
+
+// Query returns a query builder for StockMovement.
+func (c *StockMovementClient) Query() *StockMovementQuery {
+	return &StockMovementQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeStockMovement},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a StockMovement entity by its id.
+func (c *StockMovementClient) Get(ctx context.Context, id int) (*StockMovement, error) {
+	return c.Query().Where(stockmovement.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *StockMovementClient) GetX(ctx context.Context, id int) *StockMovement {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryItem queries the item edge of a StockMovement.
+func (c *StockMovementClient) QueryItem(_m *StockMovement) *ItemQuery {
+	query := (&ItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(stockmovement.Table, stockmovement.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, stockmovement.ItemTable, stockmovement.ItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLocation queries the location edge of a StockMovement.
+func (c *StockMovementClient) QueryLocation(_m *StockMovement) *LocationQuery {
+	query := (&LocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(stockmovement.Table, stockmovement.FieldID, id),
+			sqlgraph.To(location.Table, location.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, stockmovement.LocationTable, stockmovement.LocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *StockMovementClient) Hooks() []Hook {
+	return c.hooks.StockMovement
+}
+
+// Interceptors returns the client interceptors.
+func (c *StockMovementClient) Interceptors() []Interceptor {
+	return c.inters.StockMovement
+}
+
+func (c *StockMovementClient) mutate(ctx context.Context, m *StockMovementMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&StockMovementCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&StockMovementUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&StockMovementUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&StockMovementDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown StockMovement mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Item, Location []ent.Hook
+		Item, Location, StockMovement []ent.Hook
 	}
 	inters struct {
-		Item, Location []ent.Interceptor
+		Item, Location, StockMovement []ent.Interceptor
 	}
 )

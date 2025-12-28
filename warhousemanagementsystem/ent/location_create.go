@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // LocationCreate is the builder for creating a Location entity.
@@ -29,6 +30,21 @@ func (_c *LocationCreate) SetCode(v string) *LocationCreate {
 func (_c *LocationCreate) SetName(v string) *LocationCreate {
 	_c.mutation.SetName(v)
 	return _c
+}
+
+// AddMovementIDs adds the "movements" edge to the StockMovement entity by IDs.
+func (_c *LocationCreate) AddMovementIDs(ids ...int) *LocationCreate {
+	_c.mutation.AddMovementIDs(ids...)
+	return _c
+}
+
+// AddMovements adds the "movements" edges to the StockMovement entity.
+func (_c *LocationCreate) AddMovements(v ...*StockMovement) *LocationCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddMovementIDs(ids...)
 }
 
 // Mutation returns the LocationMutation object of the builder.
@@ -114,6 +130,22 @@ func (_c *LocationCreate) createSpec() (*Location, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(location.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if nodes := _c.mutation.MovementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

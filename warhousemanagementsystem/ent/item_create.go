@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // ItemCreate is the builder for creating a Item entity.
@@ -43,6 +44,21 @@ func (_c *ItemCreate) SetNillableDescription(v *string) *ItemCreate {
 		_c.SetDescription(*v)
 	}
 	return _c
+}
+
+// AddMovementIDs adds the "movements" edge to the StockMovement entity by IDs.
+func (_c *ItemCreate) AddMovementIDs(ids ...int) *ItemCreate {
+	_c.mutation.AddMovementIDs(ids...)
+	return _c
+}
+
+// AddMovements adds the "movements" edges to the StockMovement entity.
+func (_c *ItemCreate) AddMovements(v ...*StockMovement) *ItemCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddMovementIDs(ids...)
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -132,6 +148,22 @@ func (_c *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Description(); ok {
 		_spec.SetField(item.FieldDescription, field.TypeString, value)
 		_node.Description = value
+	}
+	if nodes := _c.mutation.MovementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.MovementsTable,
+			Columns: []string{item.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

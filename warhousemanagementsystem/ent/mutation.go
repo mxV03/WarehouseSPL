@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 const (
@@ -24,23 +26,27 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeItem     = "Item"
-	TypeLocation = "Location"
+	TypeItem          = "Item"
+	TypeLocation      = "Location"
+	TypeStockMovement = "StockMovement"
 )
 
 // ItemMutation represents an operation that mutates the Item nodes in the graph.
 type ItemMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	_SKU          *string
-	name          *string
-	description   *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Item, error)
-	predicates    []predicate.Item
+	op               Op
+	typ              string
+	id               *int
+	_SKU             *string
+	name             *string
+	description      *string
+	clearedFields    map[string]struct{}
+	movements        map[int]struct{}
+	removedmovements map[int]struct{}
+	clearedmovements bool
+	done             bool
+	oldValue         func(context.Context) (*Item, error)
+	predicates       []predicate.Item
 }
 
 var _ ent.Mutation = (*ItemMutation)(nil)
@@ -262,6 +268,60 @@ func (m *ItemMutation) ResetDescription() {
 	delete(m.clearedFields, item.FieldDescription)
 }
 
+// AddMovementIDs adds the "movements" edge to the StockMovement entity by ids.
+func (m *ItemMutation) AddMovementIDs(ids ...int) {
+	if m.movements == nil {
+		m.movements = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.movements[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMovements clears the "movements" edge to the StockMovement entity.
+func (m *ItemMutation) ClearMovements() {
+	m.clearedmovements = true
+}
+
+// MovementsCleared reports if the "movements" edge to the StockMovement entity was cleared.
+func (m *ItemMutation) MovementsCleared() bool {
+	return m.clearedmovements
+}
+
+// RemoveMovementIDs removes the "movements" edge to the StockMovement entity by IDs.
+func (m *ItemMutation) RemoveMovementIDs(ids ...int) {
+	if m.removedmovements == nil {
+		m.removedmovements = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.movements, ids[i])
+		m.removedmovements[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMovements returns the removed IDs of the "movements" edge to the StockMovement entity.
+func (m *ItemMutation) RemovedMovementsIDs() (ids []int) {
+	for id := range m.removedmovements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MovementsIDs returns the "movements" edge IDs in the mutation.
+func (m *ItemMutation) MovementsIDs() (ids []int) {
+	for id := range m.movements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMovements resets all changes to the "movements" edge.
+func (m *ItemMutation) ResetMovements() {
+	m.movements = nil
+	m.clearedmovements = false
+	m.removedmovements = nil
+}
+
 // Where appends a list predicates to the ItemMutation builder.
 func (m *ItemMutation) Where(ps ...predicate.Item) {
 	m.predicates = append(m.predicates, ps...)
@@ -438,64 +498,103 @@ func (m *ItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.movements != nil {
+		edges = append(edges, item.EdgeMovements)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *ItemMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case item.EdgeMovements:
+		ids := make([]ent.Value, 0, len(m.movements))
+		for id := range m.movements {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedmovements != nil {
+		edges = append(edges, item.EdgeMovements)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *ItemMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case item.EdgeMovements:
+		ids := make([]ent.Value, 0, len(m.removedmovements))
+		for id := range m.removedmovements {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedmovements {
+		edges = append(edges, item.EdgeMovements)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *ItemMutation) EdgeCleared(name string) bool {
+	switch name {
+	case item.EdgeMovements:
+		return m.clearedmovements
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *ItemMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Item unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *ItemMutation) ResetEdge(name string) error {
+	switch name {
+	case item.EdgeMovements:
+		m.ResetMovements()
+		return nil
+	}
 	return fmt.Errorf("unknown Item edge %s", name)
 }
 
 // LocationMutation represents an operation that mutates the Location nodes in the graph.
 type LocationMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	code          *string
-	name          *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Location, error)
-	predicates    []predicate.Location
+	op               Op
+	typ              string
+	id               *int
+	code             *string
+	name             *string
+	clearedFields    map[string]struct{}
+	movements        map[int]struct{}
+	removedmovements map[int]struct{}
+	clearedmovements bool
+	done             bool
+	oldValue         func(context.Context) (*Location, error)
+	predicates       []predicate.Location
 }
 
 var _ ent.Mutation = (*LocationMutation)(nil)
@@ -668,6 +767,60 @@ func (m *LocationMutation) ResetName() {
 	m.name = nil
 }
 
+// AddMovementIDs adds the "movements" edge to the StockMovement entity by ids.
+func (m *LocationMutation) AddMovementIDs(ids ...int) {
+	if m.movements == nil {
+		m.movements = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.movements[ids[i]] = struct{}{}
+	}
+}
+
+// ClearMovements clears the "movements" edge to the StockMovement entity.
+func (m *LocationMutation) ClearMovements() {
+	m.clearedmovements = true
+}
+
+// MovementsCleared reports if the "movements" edge to the StockMovement entity was cleared.
+func (m *LocationMutation) MovementsCleared() bool {
+	return m.clearedmovements
+}
+
+// RemoveMovementIDs removes the "movements" edge to the StockMovement entity by IDs.
+func (m *LocationMutation) RemoveMovementIDs(ids ...int) {
+	if m.removedmovements == nil {
+		m.removedmovements = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.movements, ids[i])
+		m.removedmovements[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedMovements returns the removed IDs of the "movements" edge to the StockMovement entity.
+func (m *LocationMutation) RemovedMovementsIDs() (ids []int) {
+	for id := range m.removedmovements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// MovementsIDs returns the "movements" edge IDs in the mutation.
+func (m *LocationMutation) MovementsIDs() (ids []int) {
+	for id := range m.movements {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetMovements resets all changes to the "movements" edge.
+func (m *LocationMutation) ResetMovements() {
+	m.movements = nil
+	m.clearedmovements = false
+	m.removedmovements = nil
+}
+
 // Where appends a list predicates to the LocationMutation builder.
 func (m *LocationMutation) Where(ps ...predicate.Location) {
 	m.predicates = append(m.predicates, ps...)
@@ -818,48 +971,680 @@ func (m *LocationMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LocationMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.movements != nil {
+		edges = append(edges, location.EdgeMovements)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *LocationMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case location.EdgeMovements:
+		ids := make([]ent.Value, 0, len(m.movements))
+		for id := range m.movements {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LocationMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedmovements != nil {
+		edges = append(edges, location.EdgeMovements)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *LocationMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case location.EdgeMovements:
+		ids := make([]ent.Value, 0, len(m.removedmovements))
+		for id := range m.removedmovements {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LocationMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedmovements {
+		edges = append(edges, location.EdgeMovements)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *LocationMutation) EdgeCleared(name string) bool {
+	switch name {
+	case location.EdgeMovements:
+		return m.clearedmovements
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *LocationMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Location unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *LocationMutation) ResetEdge(name string) error {
+	switch name {
+	case location.EdgeMovements:
+		m.ResetMovements()
+		return nil
+	}
 	return fmt.Errorf("unknown Location edge %s", name)
+}
+
+// StockMovementMutation represents an operation that mutates the StockMovement nodes in the graph.
+type StockMovementMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	_type           *string
+	quantity        *int
+	addquantity     *int
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	item            *int
+	cleareditem     bool
+	location        *int
+	clearedlocation bool
+	done            bool
+	oldValue        func(context.Context) (*StockMovement, error)
+	predicates      []predicate.StockMovement
+}
+
+var _ ent.Mutation = (*StockMovementMutation)(nil)
+
+// stockmovementOption allows management of the mutation configuration using functional options.
+type stockmovementOption func(*StockMovementMutation)
+
+// newStockMovementMutation creates new mutation for the StockMovement entity.
+func newStockMovementMutation(c config, op Op, opts ...stockmovementOption) *StockMovementMutation {
+	m := &StockMovementMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeStockMovement,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withStockMovementID sets the ID field of the mutation.
+func withStockMovementID(id int) stockmovementOption {
+	return func(m *StockMovementMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *StockMovement
+		)
+		m.oldValue = func(ctx context.Context) (*StockMovement, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().StockMovement.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withStockMovement sets the old StockMovement of the mutation.
+func withStockMovement(node *StockMovement) stockmovementOption {
+	return func(m *StockMovementMutation) {
+		m.oldValue = func(context.Context) (*StockMovement, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m StockMovementMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m StockMovementMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *StockMovementMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *StockMovementMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().StockMovement.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetType sets the "type" field.
+func (m *StockMovementMutation) SetType(s string) {
+	m._type = &s
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *StockMovementMutation) GetType() (r string, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the StockMovement entity.
+// If the StockMovement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StockMovementMutation) OldType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *StockMovementMutation) ResetType() {
+	m._type = nil
+}
+
+// SetQuantity sets the "quantity" field.
+func (m *StockMovementMutation) SetQuantity(i int) {
+	m.quantity = &i
+	m.addquantity = nil
+}
+
+// Quantity returns the value of the "quantity" field in the mutation.
+func (m *StockMovementMutation) Quantity() (r int, exists bool) {
+	v := m.quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuantity returns the old "quantity" field's value of the StockMovement entity.
+// If the StockMovement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StockMovementMutation) OldQuantity(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
+	}
+	return oldValue.Quantity, nil
+}
+
+// AddQuantity adds i to the "quantity" field.
+func (m *StockMovementMutation) AddQuantity(i int) {
+	if m.addquantity != nil {
+		*m.addquantity += i
+	} else {
+		m.addquantity = &i
+	}
+}
+
+// AddedQuantity returns the value that was added to the "quantity" field in this mutation.
+func (m *StockMovementMutation) AddedQuantity() (r int, exists bool) {
+	v := m.addquantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetQuantity resets all changes to the "quantity" field.
+func (m *StockMovementMutation) ResetQuantity() {
+	m.quantity = nil
+	m.addquantity = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *StockMovementMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *StockMovementMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the StockMovement entity.
+// If the StockMovement object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *StockMovementMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *StockMovementMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetItemID sets the "item" edge to the Item entity by id.
+func (m *StockMovementMutation) SetItemID(id int) {
+	m.item = &id
+}
+
+// ClearItem clears the "item" edge to the Item entity.
+func (m *StockMovementMutation) ClearItem() {
+	m.cleareditem = true
+}
+
+// ItemCleared reports if the "item" edge to the Item entity was cleared.
+func (m *StockMovementMutation) ItemCleared() bool {
+	return m.cleareditem
+}
+
+// ItemID returns the "item" edge ID in the mutation.
+func (m *StockMovementMutation) ItemID() (id int, exists bool) {
+	if m.item != nil {
+		return *m.item, true
+	}
+	return
+}
+
+// ItemIDs returns the "item" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ItemID instead. It exists only for internal usage by the builders.
+func (m *StockMovementMutation) ItemIDs() (ids []int) {
+	if id := m.item; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetItem resets all changes to the "item" edge.
+func (m *StockMovementMutation) ResetItem() {
+	m.item = nil
+	m.cleareditem = false
+}
+
+// SetLocationID sets the "location" edge to the Location entity by id.
+func (m *StockMovementMutation) SetLocationID(id int) {
+	m.location = &id
+}
+
+// ClearLocation clears the "location" edge to the Location entity.
+func (m *StockMovementMutation) ClearLocation() {
+	m.clearedlocation = true
+}
+
+// LocationCleared reports if the "location" edge to the Location entity was cleared.
+func (m *StockMovementMutation) LocationCleared() bool {
+	return m.clearedlocation
+}
+
+// LocationID returns the "location" edge ID in the mutation.
+func (m *StockMovementMutation) LocationID() (id int, exists bool) {
+	if m.location != nil {
+		return *m.location, true
+	}
+	return
+}
+
+// LocationIDs returns the "location" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LocationID instead. It exists only for internal usage by the builders.
+func (m *StockMovementMutation) LocationIDs() (ids []int) {
+	if id := m.location; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLocation resets all changes to the "location" edge.
+func (m *StockMovementMutation) ResetLocation() {
+	m.location = nil
+	m.clearedlocation = false
+}
+
+// Where appends a list predicates to the StockMovementMutation builder.
+func (m *StockMovementMutation) Where(ps ...predicate.StockMovement) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the StockMovementMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *StockMovementMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.StockMovement, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *StockMovementMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *StockMovementMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (StockMovement).
+func (m *StockMovementMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *StockMovementMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m._type != nil {
+		fields = append(fields, stockmovement.FieldType)
+	}
+	if m.quantity != nil {
+		fields = append(fields, stockmovement.FieldQuantity)
+	}
+	if m.created_at != nil {
+		fields = append(fields, stockmovement.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *StockMovementMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case stockmovement.FieldType:
+		return m.GetType()
+	case stockmovement.FieldQuantity:
+		return m.Quantity()
+	case stockmovement.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *StockMovementMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case stockmovement.FieldType:
+		return m.OldType(ctx)
+	case stockmovement.FieldQuantity:
+		return m.OldQuantity(ctx)
+	case stockmovement.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown StockMovement field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StockMovementMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case stockmovement.FieldType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case stockmovement.FieldQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuantity(v)
+		return nil
+	case stockmovement.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StockMovement field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *StockMovementMutation) AddedFields() []string {
+	var fields []string
+	if m.addquantity != nil {
+		fields = append(fields, stockmovement.FieldQuantity)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *StockMovementMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case stockmovement.FieldQuantity:
+		return m.AddedQuantity()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *StockMovementMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case stockmovement.FieldQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddQuantity(v)
+		return nil
+	}
+	return fmt.Errorf("unknown StockMovement numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *StockMovementMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *StockMovementMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *StockMovementMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown StockMovement nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *StockMovementMutation) ResetField(name string) error {
+	switch name {
+	case stockmovement.FieldType:
+		m.ResetType()
+		return nil
+	case stockmovement.FieldQuantity:
+		m.ResetQuantity()
+		return nil
+	case stockmovement.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown StockMovement field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *StockMovementMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.item != nil {
+		edges = append(edges, stockmovement.EdgeItem)
+	}
+	if m.location != nil {
+		edges = append(edges, stockmovement.EdgeLocation)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *StockMovementMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case stockmovement.EdgeItem:
+		if id := m.item; id != nil {
+			return []ent.Value{*id}
+		}
+	case stockmovement.EdgeLocation:
+		if id := m.location; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *StockMovementMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *StockMovementMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *StockMovementMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleareditem {
+		edges = append(edges, stockmovement.EdgeItem)
+	}
+	if m.clearedlocation {
+		edges = append(edges, stockmovement.EdgeLocation)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *StockMovementMutation) EdgeCleared(name string) bool {
+	switch name {
+	case stockmovement.EdgeItem:
+		return m.cleareditem
+	case stockmovement.EdgeLocation:
+		return m.clearedlocation
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *StockMovementMutation) ClearEdge(name string) error {
+	switch name {
+	case stockmovement.EdgeItem:
+		m.ClearItem()
+		return nil
+	case stockmovement.EdgeLocation:
+		m.ClearLocation()
+		return nil
+	}
+	return fmt.Errorf("unknown StockMovement unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *StockMovementMutation) ResetEdge(name string) error {
+	switch name {
+	case stockmovement.EdgeItem:
+		m.ResetItem()
+		return nil
+	case stockmovement.EdgeLocation:
+		m.ResetLocation()
+		return nil
+	}
+	return fmt.Errorf("unknown StockMovement edge %s", name)
 }

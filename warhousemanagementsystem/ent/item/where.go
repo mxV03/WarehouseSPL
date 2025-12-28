@@ -4,6 +4,7 @@ package item
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
 )
 
@@ -270,6 +271,29 @@ func DescriptionEqualFold(v string) predicate.Item {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.Item {
 	return predicate.Item(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// HasMovements applies the HasEdge predicate on the "movements" edge.
+func HasMovements() predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, MovementsTable, MovementsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasMovementsWith applies the HasEdge predicate on the "movements" edge with a given conditions (other predicates).
+func HasMovementsWith(preds ...predicate.StockMovement) predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := newMovementsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

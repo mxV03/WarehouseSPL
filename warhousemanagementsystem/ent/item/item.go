@@ -4,6 +4,7 @@ package item
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -17,8 +18,17 @@ const (
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// EdgeMovements holds the string denoting the movements edge name in mutations.
+	EdgeMovements = "movements"
 	// Table holds the table name of the item in the database.
 	Table = "items"
+	// MovementsTable is the table that holds the movements relation/edge.
+	MovementsTable = "stock_movements"
+	// MovementsInverseTable is the table name for the StockMovement entity.
+	// It exists in this package in order to avoid circular dependency with the "stockmovement" package.
+	MovementsInverseTable = "stock_movements"
+	// MovementsColumn is the table column denoting the movements relation/edge.
+	MovementsColumn = "item_movements"
 )
 
 // Columns holds all SQL columns for item fields.
@@ -67,4 +77,25 @@ func ByName(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByMovementsCount orders the results by movements count.
+func ByMovementsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newMovementsStep(), opts...)
+	}
+}
+
+// ByMovements orders the results by movements terms.
+func ByMovements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newMovementsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newMovementsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(MovementsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, MovementsTable, MovementsColumn),
+	)
 }

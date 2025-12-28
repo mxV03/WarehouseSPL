@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
+	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
 // LocationUpdate is the builder for updating Location entities.
@@ -55,9 +56,45 @@ func (_u *LocationUpdate) SetNillableName(v *string) *LocationUpdate {
 	return _u
 }
 
+// AddMovementIDs adds the "movements" edge to the StockMovement entity by IDs.
+func (_u *LocationUpdate) AddMovementIDs(ids ...int) *LocationUpdate {
+	_u.mutation.AddMovementIDs(ids...)
+	return _u
+}
+
+// AddMovements adds the "movements" edges to the StockMovement entity.
+func (_u *LocationUpdate) AddMovements(v ...*StockMovement) *LocationUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMovementIDs(ids...)
+}
+
 // Mutation returns the LocationMutation object of the builder.
 func (_u *LocationUpdate) Mutation() *LocationMutation {
 	return _u.mutation
+}
+
+// ClearMovements clears all "movements" edges to the StockMovement entity.
+func (_u *LocationUpdate) ClearMovements() *LocationUpdate {
+	_u.mutation.ClearMovements()
+	return _u
+}
+
+// RemoveMovementIDs removes the "movements" edge to StockMovement entities by IDs.
+func (_u *LocationUpdate) RemoveMovementIDs(ids ...int) *LocationUpdate {
+	_u.mutation.RemoveMovementIDs(ids...)
+	return _u
+}
+
+// RemoveMovements removes "movements" edges to StockMovement entities.
+func (_u *LocationUpdate) RemoveMovements(v ...*StockMovement) *LocationUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMovementIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -120,6 +157,51 @@ func (_u *LocationUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(location.FieldName, field.TypeString, value)
 	}
+	if _u.mutation.MovementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMovementsIDs(); len(nodes) > 0 && !_u.mutation.MovementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MovementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{location.Label}
@@ -168,9 +250,45 @@ func (_u *LocationUpdateOne) SetNillableName(v *string) *LocationUpdateOne {
 	return _u
 }
 
+// AddMovementIDs adds the "movements" edge to the StockMovement entity by IDs.
+func (_u *LocationUpdateOne) AddMovementIDs(ids ...int) *LocationUpdateOne {
+	_u.mutation.AddMovementIDs(ids...)
+	return _u
+}
+
+// AddMovements adds the "movements" edges to the StockMovement entity.
+func (_u *LocationUpdateOne) AddMovements(v ...*StockMovement) *LocationUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddMovementIDs(ids...)
+}
+
 // Mutation returns the LocationMutation object of the builder.
 func (_u *LocationUpdateOne) Mutation() *LocationMutation {
 	return _u.mutation
+}
+
+// ClearMovements clears all "movements" edges to the StockMovement entity.
+func (_u *LocationUpdateOne) ClearMovements() *LocationUpdateOne {
+	_u.mutation.ClearMovements()
+	return _u
+}
+
+// RemoveMovementIDs removes the "movements" edge to StockMovement entities by IDs.
+func (_u *LocationUpdateOne) RemoveMovementIDs(ids ...int) *LocationUpdateOne {
+	_u.mutation.RemoveMovementIDs(ids...)
+	return _u
+}
+
+// RemoveMovements removes "movements" edges to StockMovement entities.
+func (_u *LocationUpdateOne) RemoveMovements(v ...*StockMovement) *LocationUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveMovementIDs(ids...)
 }
 
 // Where appends a list predicates to the LocationUpdate builder.
@@ -262,6 +380,51 @@ func (_u *LocationUpdateOne) sqlSave(ctx context.Context) (_node *Location, err 
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(location.FieldName, field.TypeString, value)
+	}
+	if _u.mutation.MovementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedMovementsIDs(); len(nodes) > 0 && !_u.mutation.MovementsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.MovementsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.MovementsTable,
+			Columns: []string{location.MovementsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Location{config: _u.config}
 	_spec.Assign = _node.assignValues

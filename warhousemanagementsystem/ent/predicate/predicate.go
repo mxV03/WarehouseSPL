@@ -11,3 +11,6 @@ type Item func(*sql.Selector)
 
 // Location is the predicate function for location builders.
 type Location func(*sql.Selector)
+
+// StockMovement is the predicate function for stockmovement builders.
+type StockMovement func(*sql.Selector)
