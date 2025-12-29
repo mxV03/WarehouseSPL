@@ -16,9 +16,14 @@ type StockMovement struct {
 // Fields of the StockMovement.
 func (StockMovement) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("type").NotEmpty(), // "IN" oder "OUT" (später Enum möglich)
-		field.Int("quantity").Positive(),
-		field.Time("created_at").Default(time.Now),
+		field.String("type").
+			NotEmpty(), // "IN" or "OUT"
+		field.Int("quantity").
+			Positive(),
+		field.Time("created_at").
+			Default(time.Now),
+		field.String("reference").
+			Optional(),
 	}
 }
 

@@ -79,6 +79,26 @@ func (_u *StockMovementUpdate) SetNillableCreatedAt(v *time.Time) *StockMovement
 	return _u
 }
 
+// SetReference sets the "reference" field.
+func (_u *StockMovementUpdate) SetReference(v string) *StockMovementUpdate {
+	_u.mutation.SetReference(v)
+	return _u
+}
+
+// SetNillableReference sets the "reference" field if the given value is not nil.
+func (_u *StockMovementUpdate) SetNillableReference(v *string) *StockMovementUpdate {
+	if v != nil {
+		_u.SetReference(*v)
+	}
+	return _u
+}
+
+// ClearReference clears the value of the "reference" field.
+func (_u *StockMovementUpdate) ClearReference() *StockMovementUpdate {
+	_u.mutation.ClearReference()
+	return _u
+}
+
 // SetItemID sets the "item" edge to the Item entity by ID.
 func (_u *StockMovementUpdate) SetItemID(id int) *StockMovementUpdate {
 	_u.mutation.SetItemID(id)
@@ -189,6 +209,12 @@ func (_u *StockMovementUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(stockmovement.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Reference(); ok {
+		_spec.SetField(stockmovement.FieldReference, field.TypeString, value)
+	}
+	if _u.mutation.ReferenceCleared() {
+		_spec.ClearField(stockmovement.FieldReference, field.TypeString)
 	}
 	if _u.mutation.ItemCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -314,6 +340,26 @@ func (_u *StockMovementUpdateOne) SetNillableCreatedAt(v *time.Time) *StockMovem
 	if v != nil {
 		_u.SetCreatedAt(*v)
 	}
+	return _u
+}
+
+// SetReference sets the "reference" field.
+func (_u *StockMovementUpdateOne) SetReference(v string) *StockMovementUpdateOne {
+	_u.mutation.SetReference(v)
+	return _u
+}
+
+// SetNillableReference sets the "reference" field if the given value is not nil.
+func (_u *StockMovementUpdateOne) SetNillableReference(v *string) *StockMovementUpdateOne {
+	if v != nil {
+		_u.SetReference(*v)
+	}
+	return _u
+}
+
+// ClearReference clears the value of the "reference" field.
+func (_u *StockMovementUpdateOne) ClearReference() *StockMovementUpdateOne {
+	_u.mutation.ClearReference()
 	return _u
 }
 
@@ -457,6 +503,12 @@ func (_u *StockMovementUpdateOne) sqlSave(ctx context.Context) (_node *StockMove
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(stockmovement.FieldCreatedAt, field.TypeTime, value)
+	}
+	if value, ok := _u.mutation.Reference(); ok {
+		_spec.SetField(stockmovement.FieldReference, field.TypeString, value)
+	}
+	if _u.mutation.ReferenceCleared() {
+		_spec.ClearField(stockmovement.FieldReference, field.TypeString)
 	}
 	if _u.mutation.ItemCleared() {
 		edge := &sqlgraph.EdgeSpec{

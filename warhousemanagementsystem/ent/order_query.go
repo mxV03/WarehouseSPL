@@ -12,81 +12,57 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/order"
 	"github.com/mxV03/warhousemanagementsystem/ent/orderline"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
-	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
-// LocationQuery is the builder for querying Location entities.
-type LocationQuery struct {
+// OrderQuery is the builder for querying Order entities.
+type OrderQuery struct {
 	config
-	ctx            *QueryContext
-	order          []location.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Location
-	withMovements  *StockMovementQuery
-	withOrderLines *OrderLineQuery
+	ctx        *QueryContext
+	order      []order.OrderOption
+	inters     []Interceptor
+	predicates []predicate.Order
+	withLines  *OrderLineQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the LocationQuery builder.
-func (_q *LocationQuery) Where(ps ...predicate.Location) *LocationQuery {
+// Where adds a new predicate for the OrderQuery builder.
+func (_q *OrderQuery) Where(ps ...predicate.Order) *OrderQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *LocationQuery) Limit(limit int) *LocationQuery {
+func (_q *OrderQuery) Limit(limit int) *OrderQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *LocationQuery) Offset(offset int) *LocationQuery {
+func (_q *OrderQuery) Offset(offset int) *OrderQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *LocationQuery) Unique(unique bool) *LocationQuery {
+func (_q *OrderQuery) Unique(unique bool) *OrderQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *LocationQuery) Order(o ...location.OrderOption) *LocationQuery {
+func (_q *OrderQuery) Order(o ...order.OrderOption) *OrderQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryMovements chains the current query on the "movements" edge.
-func (_q *LocationQuery) QueryMovements() *StockMovementQuery {
-	query := (&StockMovementClient{config: _q.config}).Query()
-	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
-		if err := _q.prepareQuery(ctx); err != nil {
-			return nil, err
-		}
-		selector := _q.sqlQuery(ctx)
-		if err := selector.Err(); err != nil {
-			return nil, err
-		}
-		step := sqlgraph.NewStep(
-			sqlgraph.From(location.Table, location.FieldID, selector),
-			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, location.MovementsTable, location.MovementsColumn),
-		)
-		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
-		return fromU, nil
-	}
-	return query
-}
-
-// QueryOrderLines chains the current query on the "order_lines" edge.
-func (_q *LocationQuery) QueryOrderLines() *OrderLineQuery {
+// QueryLines chains the current query on the "lines" edge.
+func (_q *OrderQuery) QueryLines() *OrderLineQuery {
 	query := (&OrderLineClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
@@ -97,9 +73,9 @@ func (_q *LocationQuery) QueryOrderLines() *OrderLineQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(location.Table, location.FieldID, selector),
+			sqlgraph.From(order.Table, order.FieldID, selector),
 			sqlgraph.To(orderline.Table, orderline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, location.OrderLinesTable, location.OrderLinesColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, order.LinesTable, order.LinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -107,21 +83,21 @@ func (_q *LocationQuery) QueryOrderLines() *OrderLineQuery {
 	return query
 }
 
-// First returns the first Location entity from the query.
-// Returns a *NotFoundError when no Location was found.
-func (_q *LocationQuery) First(ctx context.Context) (*Location, error) {
+// First returns the first Order entity from the query.
+// Returns a *NotFoundError when no Order was found.
+func (_q *OrderQuery) First(ctx context.Context) (*Order, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{location.Label}
+		return nil, &NotFoundError{order.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *LocationQuery) FirstX(ctx context.Context) *Location {
+func (_q *OrderQuery) FirstX(ctx context.Context) *Order {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,22 +105,22 @@ func (_q *LocationQuery) FirstX(ctx context.Context) *Location {
 	return node
 }
 
-// FirstID returns the first Location ID from the query.
-// Returns a *NotFoundError when no Location ID was found.
-func (_q *LocationQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first Order ID from the query.
+// Returns a *NotFoundError when no Order ID was found.
+func (_q *OrderQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{location.Label}
+		err = &NotFoundError{order.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *LocationQuery) FirstIDX(ctx context.Context) int {
+func (_q *OrderQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -152,10 +128,10 @@ func (_q *LocationQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Location entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Location entity is found.
-// Returns a *NotFoundError when no Location entities are found.
-func (_q *LocationQuery) Only(ctx context.Context) (*Location, error) {
+// Only returns a single Order entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one Order entity is found.
+// Returns a *NotFoundError when no Order entities are found.
+func (_q *OrderQuery) Only(ctx context.Context) (*Order, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -164,14 +140,14 @@ func (_q *LocationQuery) Only(ctx context.Context) (*Location, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{location.Label}
+		return nil, &NotFoundError{order.Label}
 	default:
-		return nil, &NotSingularError{location.Label}
+		return nil, &NotSingularError{order.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *LocationQuery) OnlyX(ctx context.Context) *Location {
+func (_q *OrderQuery) OnlyX(ctx context.Context) *Order {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -179,10 +155,10 @@ func (_q *LocationQuery) OnlyX(ctx context.Context) *Location {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Location ID in the query.
-// Returns a *NotSingularError when more than one Location ID is found.
+// OnlyID is like Only, but returns the only Order ID in the query.
+// Returns a *NotSingularError when more than one Order ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *LocationQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *OrderQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -191,15 +167,15 @@ func (_q *LocationQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{location.Label}
+		err = &NotFoundError{order.Label}
 	default:
-		err = &NotSingularError{location.Label}
+		err = &NotSingularError{order.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *LocationQuery) OnlyIDX(ctx context.Context) int {
+func (_q *OrderQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -207,18 +183,18 @@ func (_q *LocationQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Locations.
-func (_q *LocationQuery) All(ctx context.Context) ([]*Location, error) {
+// All executes the query and returns a list of Orders.
+func (_q *OrderQuery) All(ctx context.Context) ([]*Order, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Location, *LocationQuery]()
-	return withInterceptors[[]*Location](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*Order, *OrderQuery]()
+	return withInterceptors[[]*Order](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *LocationQuery) AllX(ctx context.Context) []*Location {
+func (_q *OrderQuery) AllX(ctx context.Context) []*Order {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -226,20 +202,20 @@ func (_q *LocationQuery) AllX(ctx context.Context) []*Location {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Location IDs.
-func (_q *LocationQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of Order IDs.
+func (_q *OrderQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(location.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(order.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *LocationQuery) IDsX(ctx context.Context) []int {
+func (_q *OrderQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -248,16 +224,16 @@ func (_q *LocationQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *LocationQuery) Count(ctx context.Context) (int, error) {
+func (_q *OrderQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*LocationQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*OrderQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *LocationQuery) CountX(ctx context.Context) int {
+func (_q *OrderQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -266,7 +242,7 @@ func (_q *LocationQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *LocationQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *OrderQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -279,7 +255,7 @@ func (_q *LocationQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *LocationQuery) ExistX(ctx context.Context) bool {
+func (_q *OrderQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -287,45 +263,33 @@ func (_q *LocationQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the LocationQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the OrderQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *LocationQuery) Clone() *LocationQuery {
+func (_q *OrderQuery) Clone() *OrderQuery {
 	if _q == nil {
 		return nil
 	}
-	return &LocationQuery{
-		config:         _q.config,
-		ctx:            _q.ctx.Clone(),
-		order:          append([]location.OrderOption{}, _q.order...),
-		inters:         append([]Interceptor{}, _q.inters...),
-		predicates:     append([]predicate.Location{}, _q.predicates...),
-		withMovements:  _q.withMovements.Clone(),
-		withOrderLines: _q.withOrderLines.Clone(),
+	return &OrderQuery{
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]order.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.Order{}, _q.predicates...),
+		withLines:  _q.withLines.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithMovements tells the query-builder to eager-load the nodes that are connected to
-// the "movements" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *LocationQuery) WithMovements(opts ...func(*StockMovementQuery)) *LocationQuery {
-	query := (&StockMovementClient{config: _q.config}).Query()
-	for _, opt := range opts {
-		opt(query)
-	}
-	_q.withMovements = query
-	return _q
-}
-
-// WithOrderLines tells the query-builder to eager-load the nodes that are connected to
-// the "order_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *LocationQuery) WithOrderLines(opts ...func(*OrderLineQuery)) *LocationQuery {
+// WithLines tells the query-builder to eager-load the nodes that are connected to
+// the "lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *OrderQuery) WithLines(opts ...func(*OrderLineQuery)) *OrderQuery {
 	query := (&OrderLineClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withOrderLines = query
+	_q.withLines = query
 	return _q
 }
 
@@ -335,19 +299,19 @@ func (_q *LocationQuery) WithOrderLines(opts ...func(*OrderLineQuery)) *Location
 // Example:
 //
 //	var v []struct {
-//		Code string `json:"code,omitempty"`
+//		OrderNumber string `json:"order_number,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Location.Query().
-//		GroupBy(location.FieldCode).
+//	client.Order.Query().
+//		GroupBy(order.FieldOrderNumber).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *LocationQuery) GroupBy(field string, fields ...string) *LocationGroupBy {
+func (_q *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &LocationGroupBy{build: _q}
+	grbuild := &OrderGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = location.Label
+	grbuild.label = order.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -358,26 +322,26 @@ func (_q *LocationQuery) GroupBy(field string, fields ...string) *LocationGroupB
 // Example:
 //
 //	var v []struct {
-//		Code string `json:"code,omitempty"`
+//		OrderNumber string `json:"order_number,omitempty"`
 //	}
 //
-//	client.Location.Query().
-//		Select(location.FieldCode).
+//	client.Order.Query().
+//		Select(order.FieldOrderNumber).
 //		Scan(ctx, &v)
-func (_q *LocationQuery) Select(fields ...string) *LocationSelect {
+func (_q *OrderQuery) Select(fields ...string) *OrderSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &LocationSelect{LocationQuery: _q}
-	sbuild.label = location.Label
+	sbuild := &OrderSelect{OrderQuery: _q}
+	sbuild.label = order.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a LocationSelect configured with the given aggregations.
-func (_q *LocationQuery) Aggregate(fns ...AggregateFunc) *LocationSelect {
+// Aggregate returns a OrderSelect configured with the given aggregations.
+func (_q *OrderQuery) Aggregate(fns ...AggregateFunc) *OrderSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *LocationQuery) prepareQuery(ctx context.Context) error {
+func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -389,7 +353,7 @@ func (_q *LocationQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !location.ValidColumn(f) {
+		if !order.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -403,20 +367,19 @@ func (_q *LocationQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *LocationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Location, error) {
+func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order, error) {
 	var (
-		nodes       = []*Location{}
+		nodes       = []*Order{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
-			_q.withMovements != nil,
-			_q.withOrderLines != nil,
+		loadedTypes = [1]bool{
+			_q.withLines != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Location).scanValues(nil, columns)
+		return (*Order).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Location{config: _q.config}
+		node := &Order{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -430,57 +393,19 @@ func (_q *LocationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Loc
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withMovements; query != nil {
-		if err := _q.loadMovements(ctx, query, nodes,
-			func(n *Location) { n.Edges.Movements = []*StockMovement{} },
-			func(n *Location, e *StockMovement) { n.Edges.Movements = append(n.Edges.Movements, e) }); err != nil {
-			return nil, err
-		}
-	}
-	if query := _q.withOrderLines; query != nil {
-		if err := _q.loadOrderLines(ctx, query, nodes,
-			func(n *Location) { n.Edges.OrderLines = []*OrderLine{} },
-			func(n *Location, e *OrderLine) { n.Edges.OrderLines = append(n.Edges.OrderLines, e) }); err != nil {
+	if query := _q.withLines; query != nil {
+		if err := _q.loadLines(ctx, query, nodes,
+			func(n *Order) { n.Edges.Lines = []*OrderLine{} },
+			func(n *Order, e *OrderLine) { n.Edges.Lines = append(n.Edges.Lines, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *LocationQuery) loadMovements(ctx context.Context, query *StockMovementQuery, nodes []*Location, init func(*Location), assign func(*Location, *StockMovement)) error {
+func (_q *OrderQuery) loadLines(ctx context.Context, query *OrderLineQuery, nodes []*Order, init func(*Order), assign func(*Order, *OrderLine)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Location)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
-		}
-	}
-	query.withFKs = true
-	query.Where(predicate.StockMovement(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(location.MovementsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.location_movements
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "location_movements" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "location_movements" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *LocationQuery) loadOrderLines(ctx context.Context, query *OrderLineQuery, nodes []*Location, init func(*Location), assign func(*Location, *OrderLine)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Location)
+	nodeids := make(map[int]*Order)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -490,27 +415,27 @@ func (_q *LocationQuery) loadOrderLines(ctx context.Context, query *OrderLineQue
 	}
 	query.withFKs = true
 	query.Where(predicate.OrderLine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(location.OrderLinesColumn), fks...))
+		s.Where(sql.InValues(s.C(order.LinesColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.location_order_lines
+		fk := n.order_lines
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "location_order_lines" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "order_lines" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "location_order_lines" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "order_lines" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
 
-func (_q *LocationQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *OrderQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -519,8 +444,8 @@ func (_q *LocationQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *LocationQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(location.Table, location.Columns, sqlgraph.NewFieldSpec(location.FieldID, field.TypeInt))
+func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(order.Table, order.Columns, sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -529,9 +454,9 @@ func (_q *LocationQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, location.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, order.FieldID)
 		for i := range fields {
-			if fields[i] != location.FieldID {
+			if fields[i] != order.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -559,12 +484,12 @@ func (_q *LocationQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *LocationQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *OrderQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(location.Table)
+	t1 := builder.Table(order.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = location.Columns
+		columns = order.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -591,28 +516,28 @@ func (_q *LocationQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// LocationGroupBy is the group-by builder for Location entities.
-type LocationGroupBy struct {
+// OrderGroupBy is the group-by builder for Order entities.
+type OrderGroupBy struct {
 	selector
-	build *LocationQuery
+	build *OrderQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *LocationGroupBy) Aggregate(fns ...AggregateFunc) *LocationGroupBy {
+func (_g *OrderGroupBy) Aggregate(fns ...AggregateFunc) *OrderGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *LocationGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *OrderGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*LocationQuery, *LocationGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*OrderQuery, *OrderGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *LocationGroupBy) sqlScan(ctx context.Context, root *LocationQuery, v any) error {
+func (_g *OrderGroupBy) sqlScan(ctx context.Context, root *OrderQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -639,28 +564,28 @@ func (_g *LocationGroupBy) sqlScan(ctx context.Context, root *LocationQuery, v a
 	return sql.ScanSlice(rows, v)
 }
 
-// LocationSelect is the builder for selecting fields of Location entities.
-type LocationSelect struct {
-	*LocationQuery
+// OrderSelect is the builder for selecting fields of Order entities.
+type OrderSelect struct {
+	*OrderQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *LocationSelect) Aggregate(fns ...AggregateFunc) *LocationSelect {
+func (_s *OrderSelect) Aggregate(fns ...AggregateFunc) *OrderSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *LocationSelect) Scan(ctx context.Context, v any) error {
+func (_s *OrderSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*LocationQuery, *LocationSelect](ctx, _s.LocationQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*OrderQuery, *OrderSelect](ctx, _s.OrderQuery, _s, _s.inters, v)
 }
 
-func (_s *LocationSelect) sqlScan(ctx context.Context, root *LocationQuery, v any) error {
+func (_s *OrderSelect) sqlScan(ctx context.Context, root *OrderQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

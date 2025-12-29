@@ -7,6 +7,8 @@ import (
 
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/order"
+	"github.com/mxV03/warhousemanagementsystem/ent/orderline"
 	"github.com/mxV03/warhousemanagementsystem/ent/schema"
 	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
@@ -35,6 +37,32 @@ func init() {
 	locationDescName := locationFields[1].Descriptor()
 	// location.NameValidator is a validator for the "name" field. It is called by the builders before save.
 	location.NameValidator = locationDescName.Validators[0].(func(string) error)
+	orderFields := schema.Order{}.Fields()
+	_ = orderFields
+	// orderDescOrderNumber is the schema descriptor for order_number field.
+	orderDescOrderNumber := orderFields[0].Descriptor()
+	// order.OrderNumberValidator is a validator for the "order_number" field. It is called by the builders before save.
+	order.OrderNumberValidator = orderDescOrderNumber.Validators[0].(func(string) error)
+	// orderDescType is the schema descriptor for type field.
+	orderDescType := orderFields[1].Descriptor()
+	// order.TypeValidator is a validator for the "type" field. It is called by the builders before save.
+	order.TypeValidator = orderDescType.Validators[0].(func(string) error)
+	// orderDescStatus is the schema descriptor for status field.
+	orderDescStatus := orderFields[2].Descriptor()
+	// order.DefaultStatus holds the default value on creation for the status field.
+	order.DefaultStatus = orderDescStatus.Default.(string)
+	// order.StatusValidator is a validator for the "status" field. It is called by the builders before save.
+	order.StatusValidator = orderDescStatus.Validators[0].(func(string) error)
+	// orderDescCreatedAt is the schema descriptor for created_at field.
+	orderDescCreatedAt := orderFields[3].Descriptor()
+	// order.DefaultCreatedAt holds the default value on creation for the created_at field.
+	order.DefaultCreatedAt = orderDescCreatedAt.Default.(func() time.Time)
+	orderlineFields := schema.OrderLine{}.Fields()
+	_ = orderlineFields
+	// orderlineDescQuantity is the schema descriptor for quantity field.
+	orderlineDescQuantity := orderlineFields[0].Descriptor()
+	// orderline.QuantityValidator is a validator for the "quantity" field. It is called by the builders before save.
+	orderline.QuantityValidator = orderlineDescQuantity.Validators[0].(func(int) error)
 	stockmovementFields := schema.StockMovement{}.Fields()
 	_ = stockmovementFields
 	// stockmovementDescType is the schema descriptor for type field.

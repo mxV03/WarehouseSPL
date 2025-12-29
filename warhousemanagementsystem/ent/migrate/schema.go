@@ -33,12 +33,61 @@ var (
 		Columns:    LocationsColumns,
 		PrimaryKey: []*schema.Column{LocationsColumns[0]},
 	}
+	// OrdersColumns holds the columns for the "orders" table.
+	OrdersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "order_number", Type: field.TypeString, Unique: true},
+		{Name: "type", Type: field.TypeString},
+		{Name: "status", Type: field.TypeString, Default: "DRAFT"},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// OrdersTable holds the schema information for the "orders" table.
+	OrdersTable = &schema.Table{
+		Name:       "orders",
+		Columns:    OrdersColumns,
+		PrimaryKey: []*schema.Column{OrdersColumns[0]},
+	}
+	// OrderLinesColumns holds the columns for the "order_lines" table.
+	OrderLinesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "quantity", Type: field.TypeInt},
+		{Name: "item_order_lines", Type: field.TypeInt},
+		{Name: "location_order_lines", Type: field.TypeInt},
+		{Name: "order_lines", Type: field.TypeInt},
+	}
+	// OrderLinesTable holds the schema information for the "order_lines" table.
+	OrderLinesTable = &schema.Table{
+		Name:       "order_lines",
+		Columns:    OrderLinesColumns,
+		PrimaryKey: []*schema.Column{OrderLinesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "order_lines_items_order_lines",
+				Columns:    []*schema.Column{OrderLinesColumns[2]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "order_lines_locations_order_lines",
+				Columns:    []*schema.Column{OrderLinesColumns[3]},
+				RefColumns: []*schema.Column{LocationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "order_lines_orders_lines",
+				Columns:    []*schema.Column{OrderLinesColumns[4]},
+				RefColumns: []*schema.Column{OrdersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// StockMovementsColumns holds the columns for the "stock_movements" table.
 	StockMovementsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "type", Type: field.TypeString},
 		{Name: "quantity", Type: field.TypeInt},
 		{Name: "created_at", Type: field.TypeTime},
+		{Name: "reference", Type: field.TypeString, Nullable: true},
 		{Name: "item_movements", Type: field.TypeInt},
 		{Name: "location_movements", Type: field.TypeInt},
 	}
@@ -50,13 +99,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "stock_movements_items_movements",
-				Columns:    []*schema.Column{StockMovementsColumns[4]},
+				Columns:    []*schema.Column{StockMovementsColumns[5]},
 				RefColumns: []*schema.Column{ItemsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "stock_movements_locations_movements",
-				Columns:    []*schema.Column{StockMovementsColumns[5]},
+				Columns:    []*schema.Column{StockMovementsColumns[6]},
 				RefColumns: []*schema.Column{LocationsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -66,11 +115,16 @@ var (
 	Tables = []*schema.Table{
 		ItemsTable,
 		LocationsTable,
+		OrdersTable,
+		OrderLinesTable,
 		StockMovementsTable,
 	}
 )
 
 func init() {
+	OrderLinesTable.ForeignKeys[0].RefTable = ItemsTable
+	OrderLinesTable.ForeignKeys[1].RefTable = LocationsTable
+	OrderLinesTable.ForeignKeys[2].RefTable = OrdersTable
 	StockMovementsTable.ForeignKeys[0].RefTable = ItemsTable
 	StockMovementsTable.ForeignKeys[1].RefTable = LocationsTable
 }

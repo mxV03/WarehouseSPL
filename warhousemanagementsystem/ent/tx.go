@@ -16,6 +16,10 @@ type Tx struct {
 	Item *ItemClient
 	// Location is the client for interacting with the Location builders.
 	Location *LocationClient
+	// Order is the client for interacting with the Order builders.
+	Order *OrderClient
+	// OrderLine is the client for interacting with the OrderLine builders.
+	OrderLine *OrderLineClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
 
@@ -151,6 +155,8 @@ func (tx *Tx) Client() *Client {
 func (tx *Tx) init() {
 	tx.Item = NewItemClient(tx.config)
 	tx.Location = NewLocationClient(tx.config)
+	tx.Order = NewOrderClient(tx.config)
+	tx.OrderLine = NewOrderLineClient(tx.config)
 	tx.StockMovement = NewStockMovementClient(tx.config)
 }
 

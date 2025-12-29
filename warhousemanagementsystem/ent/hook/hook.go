@@ -33,6 +33,30 @@ func (f LocationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, er
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.LocationMutation", m)
 }
 
+// The OrderFunc type is an adapter to allow the use of ordinary
+// function as Order mutator.
+type OrderFunc func(context.Context, *ent.OrderMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrderFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OrderMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderMutation", m)
+}
+
+// The OrderLineFunc type is an adapter to allow the use of ordinary
+// function as OrderLine mutator.
+type OrderLineFunc func(context.Context, *ent.OrderLineMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OrderLineFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OrderLineMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderLineMutation", m)
+}
+
 // The StockMovementFunc type is an adapter to allow the use of ordinary
 // function as StockMovement mutator.
 type StockMovementFunc func(context.Context, *ent.StockMovementMutation) (ent.Value, error)

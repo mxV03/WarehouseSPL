@@ -70,6 +70,11 @@ func CreatedAt(v time.Time) predicate.StockMovement {
 	return predicate.StockMovement(sql.FieldEQ(FieldCreatedAt, v))
 }
 
+// Reference applies equality check predicate on the "reference" field. It's identical to ReferenceEQ.
+func Reference(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldEQ(FieldReference, v))
+}
+
 // TypeEQ applies the EQ predicate on the "type" field.
 func TypeEQ(v string) predicate.StockMovement {
 	return predicate.StockMovement(sql.FieldEQ(FieldType, v))
@@ -213,6 +218,81 @@ func CreatedAtLT(v time.Time) predicate.StockMovement {
 // CreatedAtLTE applies the LTE predicate on the "created_at" field.
 func CreatedAtLTE(v time.Time) predicate.StockMovement {
 	return predicate.StockMovement(sql.FieldLTE(FieldCreatedAt, v))
+}
+
+// ReferenceEQ applies the EQ predicate on the "reference" field.
+func ReferenceEQ(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldEQ(FieldReference, v))
+}
+
+// ReferenceNEQ applies the NEQ predicate on the "reference" field.
+func ReferenceNEQ(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldNEQ(FieldReference, v))
+}
+
+// ReferenceIn applies the In predicate on the "reference" field.
+func ReferenceIn(vs ...string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldIn(FieldReference, vs...))
+}
+
+// ReferenceNotIn applies the NotIn predicate on the "reference" field.
+func ReferenceNotIn(vs ...string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldNotIn(FieldReference, vs...))
+}
+
+// ReferenceGT applies the GT predicate on the "reference" field.
+func ReferenceGT(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldGT(FieldReference, v))
+}
+
+// ReferenceGTE applies the GTE predicate on the "reference" field.
+func ReferenceGTE(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldGTE(FieldReference, v))
+}
+
+// ReferenceLT applies the LT predicate on the "reference" field.
+func ReferenceLT(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldLT(FieldReference, v))
+}
+
+// ReferenceLTE applies the LTE predicate on the "reference" field.
+func ReferenceLTE(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldLTE(FieldReference, v))
+}
+
+// ReferenceContains applies the Contains predicate on the "reference" field.
+func ReferenceContains(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldContains(FieldReference, v))
+}
+
+// ReferenceHasPrefix applies the HasPrefix predicate on the "reference" field.
+func ReferenceHasPrefix(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldHasPrefix(FieldReference, v))
+}
+
+// ReferenceHasSuffix applies the HasSuffix predicate on the "reference" field.
+func ReferenceHasSuffix(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldHasSuffix(FieldReference, v))
+}
+
+// ReferenceIsNil applies the IsNil predicate on the "reference" field.
+func ReferenceIsNil() predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldIsNull(FieldReference))
+}
+
+// ReferenceNotNil applies the NotNil predicate on the "reference" field.
+func ReferenceNotNil() predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldNotNull(FieldReference))
+}
+
+// ReferenceEqualFold applies the EqualFold predicate on the "reference" field.
+func ReferenceEqualFold(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldEqualFold(FieldReference, v))
+}
+
+// ReferenceContainsFold applies the ContainsFold predicate on the "reference" field.
+func ReferenceContainsFold(v string) predicate.StockMovement {
+	return predicate.StockMovement(sql.FieldContainsFold(FieldReference, v))
 }
 
 // HasItem applies the HasEdge predicate on the "item" edge.

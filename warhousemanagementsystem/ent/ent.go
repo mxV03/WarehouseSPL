@@ -14,6 +14,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/order"
+	"github.com/mxV03/warhousemanagementsystem/ent/orderline"
 	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
@@ -77,6 +79,8 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			item.Table:          item.ValidColumn,
 			location.Table:      location.ValidColumn,
+			order.Table:         order.ValidColumn,
+			orderline.Table:     orderline.ValidColumn,
 			stockmovement.Table: stockmovement.ValidColumn,
 		})
 	})

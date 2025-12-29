@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
+	"github.com/mxV03/warhousemanagementsystem/ent/orderline"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
 	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
@@ -20,11 +21,12 @@ import (
 // ItemQuery is the builder for querying Item entities.
 type ItemQuery struct {
 	config
-	ctx           *QueryContext
-	order         []item.OrderOption
-	inters        []Interceptor
-	predicates    []predicate.Item
-	withMovements *StockMovementQuery
+	ctx            *QueryContext
+	order          []item.OrderOption
+	inters         []Interceptor
+	predicates     []predicate.Item
+	withMovements  *StockMovementQuery
+	withOrderLines *OrderLineQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -76,6 +78,28 @@ func (_q *ItemQuery) QueryMovements() *StockMovementQuery {
 			sqlgraph.From(item.Table, item.FieldID, selector),
 			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, item.MovementsTable, item.MovementsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryOrderLines chains the current query on the "order_lines" edge.
+func (_q *ItemQuery) QueryOrderLines() *OrderLineQuery {
+	query := (&OrderLineClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, selector),
+			sqlgraph.To(orderline.Table, orderline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.OrderLinesTable, item.OrderLinesColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -270,12 +294,13 @@ func (_q *ItemQuery) Clone() *ItemQuery {
 		return nil
 	}
 	return &ItemQuery{
-		config:        _q.config,
-		ctx:           _q.ctx.Clone(),
-		order:         append([]item.OrderOption{}, _q.order...),
-		inters:        append([]Interceptor{}, _q.inters...),
-		predicates:    append([]predicate.Item{}, _q.predicates...),
-		withMovements: _q.withMovements.Clone(),
+		config:         _q.config,
+		ctx:            _q.ctx.Clone(),
+		order:          append([]item.OrderOption{}, _q.order...),
+		inters:         append([]Interceptor{}, _q.inters...),
+		predicates:     append([]predicate.Item{}, _q.predicates...),
+		withMovements:  _q.withMovements.Clone(),
+		withOrderLines: _q.withOrderLines.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -290,6 +315,17 @@ func (_q *ItemQuery) WithMovements(opts ...func(*StockMovementQuery)) *ItemQuery
 		opt(query)
 	}
 	_q.withMovements = query
+	return _q
+}
+
+// WithOrderLines tells the query-builder to eager-load the nodes that are connected to
+// the "order_lines" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *ItemQuery) WithOrderLines(opts ...func(*OrderLineQuery)) *ItemQuery {
+	query := (&OrderLineClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withOrderLines = query
 	return _q
 }
 
@@ -371,8 +407,9 @@ func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, e
 	var (
 		nodes       = []*Item{}
 		_spec       = _q.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [2]bool{
 			_q.withMovements != nil,
+			_q.withOrderLines != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -397,6 +434,13 @@ func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, e
 		if err := _q.loadMovements(ctx, query, nodes,
 			func(n *Item) { n.Edges.Movements = []*StockMovement{} },
 			func(n *Item, e *StockMovement) { n.Edges.Movements = append(n.Edges.Movements, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withOrderLines; query != nil {
+		if err := _q.loadOrderLines(ctx, query, nodes,
+			func(n *Item) { n.Edges.OrderLines = []*OrderLine{} },
+			func(n *Item, e *OrderLine) { n.Edges.OrderLines = append(n.Edges.OrderLines, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -429,6 +473,37 @@ func (_q *ItemQuery) loadMovements(ctx context.Context, query *StockMovementQuer
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "item_movements" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *ItemQuery) loadOrderLines(ctx context.Context, query *OrderLineQuery, nodes []*Item, init func(*Item), assign func(*Item, *OrderLine)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Item)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.OrderLine(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(item.OrderLinesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.item_order_lines
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "item_order_lines" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "item_order_lines" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

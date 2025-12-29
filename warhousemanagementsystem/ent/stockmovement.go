@@ -25,6 +25,8 @@ type StockMovement struct {
 	Quantity int `json:"quantity,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
+	// Reference holds the value of the "reference" field.
+	Reference string `json:"reference,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the StockMovementQuery when eager-loading is set.
 	Edges              StockMovementEdges `json:"edges"`
@@ -73,7 +75,7 @@ func (*StockMovement) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case stockmovement.FieldID, stockmovement.FieldQuantity:
 			values[i] = new(sql.NullInt64)
-		case stockmovement.FieldType:
+		case stockmovement.FieldType, stockmovement.FieldReference:
 			values[i] = new(sql.NullString)
 		case stockmovement.FieldCreatedAt:
 			values[i] = new(sql.NullTime)
@@ -119,6 +121,12 @@ func (_m *StockMovement) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
 			} else if value.Valid {
 				_m.CreatedAt = value.Time
+			}
+		case stockmovement.FieldReference:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field reference", values[i])
+			} else if value.Valid {
+				_m.Reference = value.String
 			}
 		case stockmovement.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -188,6 +196,9 @@ func (_m *StockMovement) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))
+	builder.WriteString(", ")
+	builder.WriteString("reference=")
+	builder.WriteString(_m.Reference)
 	builder.WriteByte(')')
 	return builder.String()
 }

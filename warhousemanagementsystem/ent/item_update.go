@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
+	"github.com/mxV03/warhousemanagementsystem/ent/orderline"
 	"github.com/mxV03/warhousemanagementsystem/ent/predicate"
 	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
@@ -91,6 +92,21 @@ func (_u *ItemUpdate) AddMovements(v ...*StockMovement) *ItemUpdate {
 	return _u.AddMovementIDs(ids...)
 }
 
+// AddOrderLineIDs adds the "order_lines" edge to the OrderLine entity by IDs.
+func (_u *ItemUpdate) AddOrderLineIDs(ids ...int) *ItemUpdate {
+	_u.mutation.AddOrderLineIDs(ids...)
+	return _u
+}
+
+// AddOrderLines adds the "order_lines" edges to the OrderLine entity.
+func (_u *ItemUpdate) AddOrderLines(v ...*OrderLine) *ItemUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrderLineIDs(ids...)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (_u *ItemUpdate) Mutation() *ItemMutation {
 	return _u.mutation
@@ -115,6 +131,27 @@ func (_u *ItemUpdate) RemoveMovements(v ...*StockMovement) *ItemUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMovementIDs(ids...)
+}
+
+// ClearOrderLines clears all "order_lines" edges to the OrderLine entity.
+func (_u *ItemUpdate) ClearOrderLines() *ItemUpdate {
+	_u.mutation.ClearOrderLines()
+	return _u
+}
+
+// RemoveOrderLineIDs removes the "order_lines" edge to OrderLine entities by IDs.
+func (_u *ItemUpdate) RemoveOrderLineIDs(ids ...int) *ItemUpdate {
+	_u.mutation.RemoveOrderLineIDs(ids...)
+	return _u
+}
+
+// RemoveOrderLines removes "order_lines" edges to OrderLine entities.
+func (_u *ItemUpdate) RemoveOrderLines(v ...*OrderLine) *ItemUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrderLineIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -228,6 +265,51 @@ func (_u *ItemUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.OrderLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.OrderLinesTable,
+			Columns: []string{item.OrderLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrderLinesIDs(); len(nodes) > 0 && !_u.mutation.OrderLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.OrderLinesTable,
+			Columns: []string{item.OrderLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrderLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.OrderLinesTable,
+			Columns: []string{item.OrderLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{item.Label}
@@ -311,6 +393,21 @@ func (_u *ItemUpdateOne) AddMovements(v ...*StockMovement) *ItemUpdateOne {
 	return _u.AddMovementIDs(ids...)
 }
 
+// AddOrderLineIDs adds the "order_lines" edge to the OrderLine entity by IDs.
+func (_u *ItemUpdateOne) AddOrderLineIDs(ids ...int) *ItemUpdateOne {
+	_u.mutation.AddOrderLineIDs(ids...)
+	return _u
+}
+
+// AddOrderLines adds the "order_lines" edges to the OrderLine entity.
+func (_u *ItemUpdateOne) AddOrderLines(v ...*OrderLine) *ItemUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrderLineIDs(ids...)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (_u *ItemUpdateOne) Mutation() *ItemMutation {
 	return _u.mutation
@@ -335,6 +432,27 @@ func (_u *ItemUpdateOne) RemoveMovements(v ...*StockMovement) *ItemUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMovementIDs(ids...)
+}
+
+// ClearOrderLines clears all "order_lines" edges to the OrderLine entity.
+func (_u *ItemUpdateOne) ClearOrderLines() *ItemUpdateOne {
+	_u.mutation.ClearOrderLines()
+	return _u
+}
+
+// RemoveOrderLineIDs removes the "order_lines" edge to OrderLine entities by IDs.
+func (_u *ItemUpdateOne) RemoveOrderLineIDs(ids ...int) *ItemUpdateOne {
+	_u.mutation.RemoveOrderLineIDs(ids...)
+	return _u
+}
+
+// RemoveOrderLines removes "order_lines" edges to OrderLine entities.
+func (_u *ItemUpdateOne) RemoveOrderLines(v ...*OrderLine) *ItemUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrderLineIDs(ids...)
 }
 
 // Where appends a list predicates to the ItemUpdate builder.
@@ -471,6 +589,51 @@ func (_u *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(stockmovement.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.OrderLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.OrderLinesTable,
+			Columns: []string{item.OrderLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrderLinesIDs(); len(nodes) > 0 && !_u.mutation.OrderLinesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.OrderLinesTable,
+			Columns: []string{item.OrderLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrderLinesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   item.OrderLinesTable,
+			Columns: []string{item.OrderLinesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

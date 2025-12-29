@@ -296,6 +296,29 @@ func HasMovementsWith(preds ...predicate.StockMovement) predicate.Item {
 	})
 }
 
+// HasOrderLines applies the HasEdge predicate on the "order_lines" edge.
+func HasOrderLines() predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrderLinesTable, OrderLinesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrderLinesWith applies the HasEdge predicate on the "order_lines" edge with a given conditions (other predicates).
+func HasOrderLinesWith(preds ...predicate.OrderLine) predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := newOrderLinesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Item) predicate.Item {
 	return predicate.Item(sql.AndPredicates(predicates...))

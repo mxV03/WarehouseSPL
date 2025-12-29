@@ -40,9 +40,10 @@ type StockDTO struct {
 	Quantity     int
 }
 
-func (s *StockService) IN(ctx context.Context, sku, locCode string, qty int) error {
+func (s *StockService) IN(ctx context.Context, sku, locCode string, qty int, ref string) error {
 	sku = strings.TrimSpace(sku)
 	locCode = strings.TrimSpace(locCode)
+	ref = strings.TrimSpace(ref)
 
 	if sku == "" {
 		return ErrInvalidSKU
@@ -64,22 +65,27 @@ func (s *StockService) IN(ctx context.Context, sku, locCode string, qty int) err
 		return fmt.Errorf("fetching location: %w", err)
 	}
 
-	_, err = s.client.StockMovement.Create().
+	create := s.client.StockMovement.Create().
 		SetItem(item).
 		SetLocation(loc).
 		SetQuantity(qty).
-		SetType(string(MovementTypeIn)).
-		Save(ctx)
+		SetType(string(MovementTypeIn))
 
-	if err != nil {
+	if ref != "" {
+		create.SetReference(ref)
+	}
+
+	if _, err := create.Save(ctx); err != nil {
 		return fmt.Errorf("creating stock movement IN: %w", err)
 	}
 	return nil
 }
 
-func (s *StockService) OUT(ctx context.Context, sku, locCode string, qty int) error {
+func (s *StockService) OUT(ctx context.Context, sku, locCode string, qty int, ref string) error {
 	sku = strings.TrimSpace(sku)
 	locCode = strings.TrimSpace(locCode)
+	ref = strings.TrimSpace(ref)
+
 	if sku == "" {
 		return ErrInvalidSKU
 	}
@@ -108,14 +114,17 @@ func (s *StockService) OUT(ctx context.Context, sku, locCode string, qty int) er
 		return fmt.Errorf("fetching location: %w", err)
 	}
 
-	_, err = s.client.StockMovement.Create().
+	create := s.client.StockMovement.Create().
 		SetItem(item).
 		SetLocation(loc).
 		SetQuantity(qty).
-		SetType(string(MovementTypeOut)).
-		Save(ctx)
+		SetType(string(MovementTypeOut))
 
-	if err != nil {
+	if ref != "" {
+		create.SetReference(ref)
+	}
+
+	if _, err := create.Save(ctx); err != nil {
 		return fmt.Errorf("creating stock movement OUT: %w", err)
 	}
 	return nil

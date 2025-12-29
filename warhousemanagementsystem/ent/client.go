@@ -17,6 +17,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/mxV03/warhousemanagementsystem/ent/item"
 	"github.com/mxV03/warhousemanagementsystem/ent/location"
+	"github.com/mxV03/warhousemanagementsystem/ent/order"
+	"github.com/mxV03/warhousemanagementsystem/ent/orderline"
 	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
 )
 
@@ -29,6 +31,10 @@ type Client struct {
 	Item *ItemClient
 	// Location is the client for interacting with the Location builders.
 	Location *LocationClient
+	// Order is the client for interacting with the Order builders.
+	Order *OrderClient
+	// OrderLine is the client for interacting with the OrderLine builders.
+	OrderLine *OrderLineClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
 }
@@ -44,6 +50,8 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Item = NewItemClient(c.config)
 	c.Location = NewLocationClient(c.config)
+	c.Order = NewOrderClient(c.config)
+	c.OrderLine = NewOrderLineClient(c.config)
 	c.StockMovement = NewStockMovementClient(c.config)
 }
 
@@ -139,6 +147,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:        cfg,
 		Item:          NewItemClient(cfg),
 		Location:      NewLocationClient(cfg),
+		Order:         NewOrderClient(cfg),
+		OrderLine:     NewOrderLineClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
 	}, nil
 }
@@ -161,6 +171,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:        cfg,
 		Item:          NewItemClient(cfg),
 		Location:      NewLocationClient(cfg),
+		Order:         NewOrderClient(cfg),
+		OrderLine:     NewOrderLineClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
 	}, nil
 }
@@ -192,6 +204,8 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.Item.Use(hooks...)
 	c.Location.Use(hooks...)
+	c.Order.Use(hooks...)
+	c.OrderLine.Use(hooks...)
 	c.StockMovement.Use(hooks...)
 }
 
@@ -200,6 +214,8 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Item.Intercept(interceptors...)
 	c.Location.Intercept(interceptors...)
+	c.Order.Intercept(interceptors...)
+	c.OrderLine.Intercept(interceptors...)
 	c.StockMovement.Intercept(interceptors...)
 }
 
@@ -210,6 +226,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Item.mutate(ctx, m)
 	case *LocationMutation:
 		return c.Location.mutate(ctx, m)
+	case *OrderMutation:
+		return c.Order.mutate(ctx, m)
+	case *OrderLineMutation:
+		return c.OrderLine.mutate(ctx, m)
 	case *StockMovementMutation:
 		return c.StockMovement.mutate(ctx, m)
 	default:
@@ -334,6 +354,22 @@ func (c *ItemClient) QueryMovements(_m *Item) *StockMovementQuery {
 			sqlgraph.From(item.Table, item.FieldID, id),
 			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, item.MovementsTable, item.MovementsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderLines queries the order_lines edge of a Item.
+func (c *ItemClient) QueryOrderLines(_m *Item) *OrderLineQuery {
+	query := (&OrderLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(orderline.Table, orderline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, item.OrderLinesTable, item.OrderLinesColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -490,6 +526,22 @@ func (c *LocationClient) QueryMovements(_m *Location) *StockMovementQuery {
 	return query
 }
 
+// QueryOrderLines queries the order_lines edge of a Location.
+func (c *LocationClient) QueryOrderLines(_m *Location) *OrderLineQuery {
+	query := (&OrderLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, id),
+			sqlgraph.To(orderline.Table, orderline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, location.OrderLinesTable, location.OrderLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *LocationClient) Hooks() []Hook {
 	return c.hooks.Location
@@ -512,6 +564,336 @@ func (c *LocationClient) mutate(ctx context.Context, m *LocationMutation) (Value
 		return (&LocationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Location mutation op: %q", m.Op())
+	}
+}
+
+// OrderClient is a client for the Order schema.
+type OrderClient struct {
+	config
+}
+
+// NewOrderClient returns a client for the Order from the given config.
+func NewOrderClient(c config) *OrderClient {
+	return &OrderClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `order.Hooks(f(g(h())))`.
+func (c *OrderClient) Use(hooks ...Hook) {
+	c.hooks.Order = append(c.hooks.Order, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `order.Intercept(f(g(h())))`.
+func (c *OrderClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Order = append(c.inters.Order, interceptors...)
+}
+
+// Create returns a builder for creating a Order entity.
+func (c *OrderClient) Create() *OrderCreate {
+	mutation := newOrderMutation(c.config, OpCreate)
+	return &OrderCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Order entities.
+func (c *OrderClient) CreateBulk(builders ...*OrderCreate) *OrderCreateBulk {
+	return &OrderCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OrderClient) MapCreateBulk(slice any, setFunc func(*OrderCreate, int)) *OrderCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OrderCreateBulk{err: fmt.Errorf("calling to OrderClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OrderCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OrderCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Order.
+func (c *OrderClient) Update() *OrderUpdate {
+	mutation := newOrderMutation(c.config, OpUpdate)
+	return &OrderUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OrderClient) UpdateOne(_m *Order) *OrderUpdateOne {
+	mutation := newOrderMutation(c.config, OpUpdateOne, withOrder(_m))
+	return &OrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OrderClient) UpdateOneID(id int) *OrderUpdateOne {
+	mutation := newOrderMutation(c.config, OpUpdateOne, withOrderID(id))
+	return &OrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Order.
+func (c *OrderClient) Delete() *OrderDelete {
+	mutation := newOrderMutation(c.config, OpDelete)
+	return &OrderDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OrderClient) DeleteOne(_m *Order) *OrderDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OrderClient) DeleteOneID(id int) *OrderDeleteOne {
+	builder := c.Delete().Where(order.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OrderDeleteOne{builder}
+}
+
+// Query returns a query builder for Order.
+func (c *OrderClient) Query() *OrderQuery {
+	return &OrderQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOrder},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Order entity by its id.
+func (c *OrderClient) Get(ctx context.Context, id int) (*Order, error) {
+	return c.Query().Where(order.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OrderClient) GetX(ctx context.Context, id int) *Order {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLines queries the lines edge of a Order.
+func (c *OrderClient) QueryLines(_m *Order) *OrderLineQuery {
+	query := (&OrderLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(orderline.Table, orderline.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, order.LinesTable, order.LinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OrderClient) Hooks() []Hook {
+	return c.hooks.Order
+}
+
+// Interceptors returns the client interceptors.
+func (c *OrderClient) Interceptors() []Interceptor {
+	return c.inters.Order
+}
+
+func (c *OrderClient) mutate(ctx context.Context, m *OrderMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OrderCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OrderUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OrderUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OrderDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Order mutation op: %q", m.Op())
+	}
+}
+
+// OrderLineClient is a client for the OrderLine schema.
+type OrderLineClient struct {
+	config
+}
+
+// NewOrderLineClient returns a client for the OrderLine from the given config.
+func NewOrderLineClient(c config) *OrderLineClient {
+	return &OrderLineClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `orderline.Hooks(f(g(h())))`.
+func (c *OrderLineClient) Use(hooks ...Hook) {
+	c.hooks.OrderLine = append(c.hooks.OrderLine, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `orderline.Intercept(f(g(h())))`.
+func (c *OrderLineClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OrderLine = append(c.inters.OrderLine, interceptors...)
+}
+
+// Create returns a builder for creating a OrderLine entity.
+func (c *OrderLineClient) Create() *OrderLineCreate {
+	mutation := newOrderLineMutation(c.config, OpCreate)
+	return &OrderLineCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OrderLine entities.
+func (c *OrderLineClient) CreateBulk(builders ...*OrderLineCreate) *OrderLineCreateBulk {
+	return &OrderLineCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OrderLineClient) MapCreateBulk(slice any, setFunc func(*OrderLineCreate, int)) *OrderLineCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OrderLineCreateBulk{err: fmt.Errorf("calling to OrderLineClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OrderLineCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OrderLineCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OrderLine.
+func (c *OrderLineClient) Update() *OrderLineUpdate {
+	mutation := newOrderLineMutation(c.config, OpUpdate)
+	return &OrderLineUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OrderLineClient) UpdateOne(_m *OrderLine) *OrderLineUpdateOne {
+	mutation := newOrderLineMutation(c.config, OpUpdateOne, withOrderLine(_m))
+	return &OrderLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OrderLineClient) UpdateOneID(id int) *OrderLineUpdateOne {
+	mutation := newOrderLineMutation(c.config, OpUpdateOne, withOrderLineID(id))
+	return &OrderLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OrderLine.
+func (c *OrderLineClient) Delete() *OrderLineDelete {
+	mutation := newOrderLineMutation(c.config, OpDelete)
+	return &OrderLineDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OrderLineClient) DeleteOne(_m *OrderLine) *OrderLineDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OrderLineClient) DeleteOneID(id int) *OrderLineDeleteOne {
+	builder := c.Delete().Where(orderline.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OrderLineDeleteOne{builder}
+}
+
+// Query returns a query builder for OrderLine.
+func (c *OrderLineClient) Query() *OrderLineQuery {
+	return &OrderLineQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOrderLine},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OrderLine entity by its id.
+func (c *OrderLineClient) Get(ctx context.Context, id int) (*OrderLine, error) {
+	return c.Query().Where(orderline.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OrderLineClient) GetX(ctx context.Context, id int) *OrderLine {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOrder queries the order edge of a OrderLine.
+func (c *OrderLineClient) QueryOrder(_m *OrderLine) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(orderline.Table, orderline.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, orderline.OrderTable, orderline.OrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryItem queries the item edge of a OrderLine.
+func (c *OrderLineClient) QueryItem(_m *OrderLine) *ItemQuery {
+	query := (&ItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(orderline.Table, orderline.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, orderline.ItemTable, orderline.ItemColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLocation queries the location edge of a OrderLine.
+func (c *OrderLineClient) QueryLocation(_m *OrderLine) *LocationQuery {
+	query := (&LocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(orderline.Table, orderline.FieldID, id),
+			sqlgraph.To(location.Table, location.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, orderline.LocationTable, orderline.LocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OrderLineClient) Hooks() []Hook {
+	return c.hooks.OrderLine
+}
+
+// Interceptors returns the client interceptors.
+func (c *OrderLineClient) Interceptors() []Interceptor {
+	return c.inters.OrderLine
+}
+
+func (c *OrderLineClient) mutate(ctx context.Context, m *OrderLineMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OrderLineCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OrderLineUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OrderLineUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OrderLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OrderLine mutation op: %q", m.Op())
 	}
 }
 
@@ -683,9 +1065,9 @@ func (c *StockMovementClient) mutate(ctx context.Context, m *StockMovementMutati
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Item, Location, StockMovement []ent.Hook
+		Item, Location, Order, OrderLine, StockMovement []ent.Hook
 	}
 	inters struct {
-		Item, Location, StockMovement []ent.Interceptor
+		Item, Location, Order, OrderLine, StockMovement []ent.Interceptor
 	}
 )

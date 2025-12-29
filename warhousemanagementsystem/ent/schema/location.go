@@ -26,5 +26,6 @@ func (Location) Fields() []ent.Field {
 func (Location) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("movements", StockMovement.Type),
+		edge.To("order_lines", OrderLine.Type),
 	}
 }

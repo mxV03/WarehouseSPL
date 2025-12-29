@@ -48,6 +48,20 @@ func (_c *StockMovementCreate) SetNillableCreatedAt(v *time.Time) *StockMovement
 	return _c
 }
 
+// SetReference sets the "reference" field.
+func (_c *StockMovementCreate) SetReference(v string) *StockMovementCreate {
+	_c.mutation.SetReference(v)
+	return _c
+}
+
+// SetNillableReference sets the "reference" field if the given value is not nil.
+func (_c *StockMovementCreate) SetNillableReference(v *string) *StockMovementCreate {
+	if v != nil {
+		_c.SetReference(*v)
+	}
+	return _c
+}
+
 // SetItemID sets the "item" edge to the Item entity by ID.
 func (_c *StockMovementCreate) SetItemID(id int) *StockMovementCreate {
 	_c.mutation.SetItemID(id)
@@ -175,6 +189,10 @@ func (_c *StockMovementCreate) createSpec() (*StockMovement, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(stockmovement.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
+	}
+	if value, ok := _c.mutation.Reference(); ok {
+		_spec.SetField(stockmovement.FieldReference, field.TypeString, value)
+		_node.Reference = value
 	}
 	if nodes := _c.mutation.ItemIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

@@ -18,6 +18,8 @@ const (
 	FieldName = "name"
 	// EdgeMovements holds the string denoting the movements edge name in mutations.
 	EdgeMovements = "movements"
+	// EdgeOrderLines holds the string denoting the order_lines edge name in mutations.
+	EdgeOrderLines = "order_lines"
 	// Table holds the table name of the location in the database.
 	Table = "locations"
 	// MovementsTable is the table that holds the movements relation/edge.
@@ -27,6 +29,13 @@ const (
 	MovementsInverseTable = "stock_movements"
 	// MovementsColumn is the table column denoting the movements relation/edge.
 	MovementsColumn = "location_movements"
+	// OrderLinesTable is the table that holds the order_lines relation/edge.
+	OrderLinesTable = "order_lines"
+	// OrderLinesInverseTable is the table name for the OrderLine entity.
+	// It exists in this package in order to avoid circular dependency with the "orderline" package.
+	OrderLinesInverseTable = "order_lines"
+	// OrderLinesColumn is the table column denoting the order_lines relation/edge.
+	OrderLinesColumn = "location_order_lines"
 )
 
 // Columns holds all SQL columns for location fields.
@@ -84,10 +93,31 @@ func ByMovements(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newMovementsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByOrderLinesCount orders the results by order_lines count.
+func ByOrderLinesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOrderLinesStep(), opts...)
+	}
+}
+
+// ByOrderLines orders the results by order_lines terms.
+func ByOrderLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrderLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newMovementsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MovementsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MovementsTable, MovementsColumn),
+	)
+}
+func newOrderLinesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrderLinesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OrderLinesTable, OrderLinesColumn),
 	)
 }

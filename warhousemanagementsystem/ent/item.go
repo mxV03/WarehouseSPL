@@ -32,9 +32,11 @@ type Item struct {
 type ItemEdges struct {
 	// Movements holds the value of the movements edge.
 	Movements []*StockMovement `json:"movements,omitempty"`
+	// OrderLines holds the value of the order_lines edge.
+	OrderLines []*OrderLine `json:"order_lines,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // MovementsOrErr returns the Movements value or an error if the edge
@@ -44,6 +46,15 @@ func (e ItemEdges) MovementsOrErr() ([]*StockMovement, error) {
 		return e.Movements, nil
 	}
 	return nil, &NotLoadedError{edge: "movements"}
+}
+
+// OrderLinesOrErr returns the OrderLines value or an error if the edge
+// was not loaded in eager-loading.
+func (e ItemEdges) OrderLinesOrErr() ([]*OrderLine, error) {
+	if e.loadedTypes[1] {
+		return e.OrderLines, nil
+	}
+	return nil, &NotLoadedError{edge: "order_lines"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -110,6 +121,11 @@ func (_m *Item) Value(name string) (ent.Value, error) {
 // QueryMovements queries the "movements" edge of the Item entity.
 func (_m *Item) QueryMovements() *StockMovementQuery {
 	return NewItemClient(_m.config).QueryMovements(_m)
+}
+
+// QueryOrderLines queries the "order_lines" edge of the Item entity.
+func (_m *Item) QueryOrderLines() *OrderLineQuery {
+	return NewItemClient(_m.config).QueryOrderLines(_m)
 }
 
 // Update returns a builder for updating this Item.
