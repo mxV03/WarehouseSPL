@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 
+	"github.com/mxV03/warhousemanagementsystem/internal/features/interfaces/cli"
 	"github.com/mxV03/warhousemanagementsystem/internal/storage"
 	"github.com/mxV03/warhousemanagementsystem/internal/storage/sqlite"
 )
@@ -18,4 +19,8 @@ func main() {
 	storage.SetClient(client)
 
 	log.Println("Database initialized successfully")
+
+	if err := cli.Run(); err != nil {
+		log.Fatalf("CLI error: %v", err)
+	}
 }
