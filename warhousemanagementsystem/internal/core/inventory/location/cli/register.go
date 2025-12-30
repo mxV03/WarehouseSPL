@@ -14,6 +14,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "location.add",
 		Usage:       "location.add <code> <name>",
+		Group:       "Core / Location",
 		Description: "Create a new location.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) < 2 {
@@ -33,6 +34,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "location.get",
 		Usage:       "location.get <code>",
+		Group:       "Core / Location",
 		Description: "Get a location by code.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {
@@ -52,6 +54,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "location.list",
 		Usage:       "location.list [limit]",
+		Group:       "Core / Location",
 		Description: "List locations. (default limit=100, max=500)",
 		Run: func(ctx context.Context, args []string) error {
 			limit := 100
@@ -86,6 +89,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "location.del",
 		Usage:       "location.del <code>",
+		Group:       "Core / Location",
 		Description: "Delete a location by code.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {

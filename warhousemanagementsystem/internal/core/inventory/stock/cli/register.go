@@ -14,6 +14,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "stock.in",
 		Usage:       "stock.in <sku> <location_code> <quantity> [reference]",
+		Group:       "Core / Stock",
 		Description: "Book incoming stock.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) < 3 {
@@ -36,6 +37,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "stock.out",
 		Usage:       "stock.out <sku> <location_code> <quantity> [reference]",
+		Group:       "Core / Stock",
 		Description: "Book outgoing stock.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) < 3 {
@@ -63,6 +65,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "stock.at",
 		Usage:       "stock.at <sku> <location_code>",
+		Group:       "Core / Stock",
 		Description: "Show stock for a SKU at a specific location",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 2 {
@@ -83,6 +86,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "stock.total",
 		Usage:       "stock.total <sku>",
+		Group:       "Core / Stock",
 		Description: "Show total stock for a SKU across all locations",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {

@@ -14,6 +14,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "order.in",
 		Usage:       "order.in <order_number>",
+		Group:       "Core / Orders",
 		Description: "Create inbound order.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {
@@ -31,6 +32,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "order.out",
 		Usage:       "order.out <order_number>",
+		Group:       "Core / Orders",
 		Description: "Create outbound order.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {
@@ -48,6 +50,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "order.addline",
 		Usage:       "order.addline <order_number> <sku> <location> <quantity>",
+		Group:       "Core / Orders",
 		Description: "Add a line item to an order.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 4 {
@@ -67,6 +70,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "order.post",
 		Usage:       "order.post <order_number>",
+		Group:       "Core / Orders",
 		Description: "Post an order: creates stock movements and marks order as POSTED.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {
@@ -84,6 +88,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "order.cancel",
 		Usage:       "order.cancel <order_number>",
+		Group:       "Core / Orders",
 		Description: "Cancel a DRAFT order.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {

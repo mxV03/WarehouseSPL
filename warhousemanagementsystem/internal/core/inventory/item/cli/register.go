@@ -15,6 +15,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "item.add",
 		Usage:       "item.add <sku> <name> [description]",
+		Group:       "Core / Items",
 		Description: "Create a new item.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) < 2 {
@@ -37,6 +38,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "item.get",
 		Usage:       "item.get <sku>",
+		Group:       "Core / Items",
 		Description: "Get item by SKU.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {
@@ -55,6 +57,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "item.list",
 		Usage:       "item.list [limit]",
+		Group:       "Core / Items",
 		Description: "List all items. (default limit=100, max=500)",
 		Run: func(ctx context.Context, args []string) error {
 			limit := 100
@@ -89,6 +92,7 @@ func init() {
 	registry.Register(registry.Command{
 		Name:        "item.del",
 		Usage:       "item.del <sku>",
+		Group:       "Core / Items",
 		Description: "Delete item by SKU.",
 		Run: func(ctx context.Context, args []string) error {
 			if len(args) != 1 {
