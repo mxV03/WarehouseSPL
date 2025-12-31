@@ -1,13 +1,36 @@
 APP=warehouse
+BIN=bin
+
+TAGS_MIN=min
+TAGS_PRO=pro,reporting
+
+.PHONY: run-min run-pro run-bad-multiwarehouse build-min build-pro clean help
+
+help:
+	@echo "Targets:"
+	@echo "  run-min                 Run MIN product"
+	@echo "  run-pro                 Run PRO product (includes reporting)"
+	@echo "  run-bad-multiwarehouse  Demonstrate guard (should FAIL)"
+	@echo "  build-min               Build MIN binary"
+	@echo "  build-pro               Build PRO binary"
+	@echo "  clean                   Remove binaries
+
+
 
 run-min:
-	go run -tags "min" ./cmd/app
+	go run -tags "$(TAGS_MIN)" ./cmd/app
 
 run-pro:
-	go run -tags "pro,reporting" ./cmd/app
+	go run -tags "$(TAGS_PRO)" ./cmd/app
+
+run-bad-multiwarehouse:
+	go run -tags "min, warehouse" ./cmd/app
 
 build-min:
 	go build -tags "min" -o bin/$(APP)-min ./cmd/app
 
 build-pro:
 	go build -tags "pro,reporting" -o bin/$(APP)-pro ./cmd/app
+
+clean: 
+	rm -rf $(BIN)

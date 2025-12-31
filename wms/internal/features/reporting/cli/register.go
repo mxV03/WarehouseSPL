@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/mxV03/warhousemanagementsystem/internal/features/interfaces/cli/clictx"
-	"github.com/mxV03/warhousemanagementsystem/internal/features/interfaces/cli/registry"
-	"github.com/mxV03/warhousemanagementsystem/internal/features/reporting"
+	"github.com/mxV03/wms/internal/features/interfaces/cli/clictx"
+	"github.com/mxV03/wms/internal/features/interfaces/cli/registry"
+	"github.com/mxV03/wms/internal/features/reporting"
 )
 
 func init() {

@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mxV03/warhousemanagementsystem/ent"
-	"github.com/mxV03/warhousemanagementsystem/ent/item"
-	"github.com/mxV03/warhousemanagementsystem/ent/stockmovement"
-	"github.com/mxV03/warhousemanagementsystem/internal/core/inventory/stock"
+	"github.com/mxV03/wms/ent"
+	"github.com/mxV03/wms/ent/item"
+	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/internal/core/inventory/stock"
 )
 
 type ReportService struct {
