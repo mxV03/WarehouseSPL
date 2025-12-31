@@ -1,0 +1,13 @@
+APP=warehouse
+
+run-min:
+	go run -tags "min" ./cmd/app
+
+run-pro:
+	go run -tags "pro,reporting" ./cmd/app
+
+build-min:
+	go build -tags "min" -o bin/$(APP)-min ./cmd/app
+
+build-pro:
+	go build -tags "pro,reporting" -o bin/$(APP)-pro ./cmd/app
