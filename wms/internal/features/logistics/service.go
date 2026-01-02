@@ -238,3 +238,115 @@ func (s *LogisticsService) ItemsInBin(ctx context.Context, locCode, binCode stri
 	}
 	return items, nil
 }
+
+func (s *LogisticsService) UnassignItemFromBin(ctx context.Context, locCode, binCode, sku string) error {
+	binCode = strings.TrimSpace(binCode)
+	sku = strings.TrimSpace(sku)
+
+	if binCode == "" {
+		return ErrInvalidBinCode
+	}
+	if sku == "" {
+		return ErrInvalidSKU
+	}
+
+	loc, err := s.getLocation(ctx, locCode)
+	if err != nil {
+		return err
+	}
+
+	b, err := s.client.Bin.Query().
+		Where(bin.Code(binCode), bin.HasLocationWith(location.ID(loc.ID))).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("fetch bin: %w", err)
+	}
+
+	it, err := s.client.Item.Query().
+		Where(item.SKU(sku)).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		fmt.Errorf("fetch item: %w", err)
+	}
+
+	if err := b.Update().RemoveItems(it).Exec(ctx); err != nil {
+		return fmt.Errorf("unassign item from bin: %w", err)
+	}
+	return nil
+}
+
+func (s *LogisticsService) DeleteBin(ctx context.Context, locCode, binCode string) error {
+	binCode = strings.TrimSpace(binCode)
+	if binCode == "" {
+		return ErrInvalidBinCode
+	}
+
+	loc, err := s.getLocation(ctx, locCode)
+	if err != nil {
+		return err
+	}
+
+	b, err := s.client.Bin.Query().
+		Where(bin.Code(binCode), bin.HasLocationWith(location.ID(loc.ID))).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("fetch bin: %w", err)
+	}
+
+	count, err := b.QueryItems().Count(ctx)
+	if err != nil {
+		return fmt.Errorf("count bin items: %w", err)
+	}
+	if count > 0 {
+		return fmt.Errorf("cannot delte bin %s: %d item(s) still assigned", binCode, count)
+	}
+
+	if err := s.client.Bin.DeleteOne(b).Exec(ctx); err != nil {
+		return fmt.Errorf("delte bin: %w", err)
+	}
+	return nil
+}
+
+func (s *LogisticsService) DeleteZone(ctx context.Context, locCode, zoneCode string) error {
+	zoneCode = strings.TrimSpace(zoneCode)
+	if zoneCode == "" {
+		return ErrInvalidZonesCode
+	}
+
+	loc, err := s.getLocation(ctx, locCode)
+	if err != nil {
+		return err
+	}
+
+	z, err := s.client.Zone.Query().
+		Where(zone.Code(zoneCode), zone.HasLocationWith(location.ID(loc.ID))).
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return ErrNotFound
+		}
+		return fmt.Errorf("fetch zone: %w", err)
+	}
+
+	binCount, err := z.QueryBins().Count(ctx)
+	if err != nil {
+		return fmt.Errorf("count zone bins: %w", err)
+	}
+	if binCount > 0 {
+		return fmt.Errorf("cannot delte zone %s: %d bin(s) still exists", zoneCode, binCount)
+	}
+
+	if err := s.client.Zone.DeleteOne(z).Exec(ctx); err != nil {
+		return fmt.Errorf("delete zone: %w", err)
+	}
+	return nil
+}

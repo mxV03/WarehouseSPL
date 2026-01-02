@@ -205,4 +205,61 @@ func init() {
 			return nil
 		},
 	})
+
+	registry.Register(registry.Command{
+		Name:        "logistics.bin.unassign",
+		Usage:       "logistics.bin.unassign <locationCode> <binCode> <sku>",
+		Group:       "Optional / Logistics",
+		Description: "Unassign (unlink) an item SKU from a bin.",
+		Run: func(ctx context.Context, args []string) error {
+			if len(args) != 3 {
+				return fmt.Errorf("usage: logistics.bin.unassign <locationCode> <binCode> <sku>")
+			}
+
+			svc := logistics.NewLocationService(clictx.AppCtx().Client())
+			if err := svc.UnassignItemFromBin(ctx, args[0], args[1], args[2]); err != nil {
+				return err
+			}
+			fmt.Printf("unassigned item %s from bin %s (loc=%s)\n", args[2], args[1], args[0])
+			return nil
+		},
+	})
+
+	registry.Register(registry.Command{
+		Name:        "logistics.bin.delete",
+		Usage:       "logistics.bin.delete <locationCode> <binCode>",
+		Group:       "Optional / Logistics",
+		Description: "Delete a bin only if no items are assigned.",
+		Run: func(ctx context.Context, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("usage: logistics.bin.delete <locationCode> <binCode>")
+			}
+
+			svc := logistics.NewLocationService(clictx.AppCtx().Client())
+			if err := svc.DeleteBin(ctx, args[0], args[1]); err != nil {
+				return err
+			}
+			fmt.Printf("deleted bin %s (loc=%s)\n", args[1], args[0])
+			return nil
+		},
+	})
+
+	registry.Register(registry.Command{
+		Name:        "logistics.zone.delete",
+		Usage:       "logistics.zone.delete <locationCode> <zoneCode>",
+		Group:       "Optional / Logistics",
+		Description: "Delete a zone only if it has no bins.",
+		Run: func(ctx context.Context, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("usage: logistics.bin.delete <locationCode> <zoneCode>")
+			}
+
+			svc := logistics.NewLocationService(clictx.AppCtx().Client())
+			if err := svc.DeleteZone(ctx, args[0], args[1]); err != nil {
+				return err
+			}
+			fmt.Printf("deleted zone %s (loc=%s)\n", args[1], args[0])
+			return nil
+		},
+	})
 }
