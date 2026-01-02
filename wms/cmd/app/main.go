@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/mxV03/wms/internal/features/interfaces/cli"
+	"github.com/mxV03/wms/internal/features/interfaces/cli/clictx"
 	"github.com/mxV03/wms/internal/products"
 	_ "github.com/mxV03/wms/internal/products/constraints"
 
@@ -23,6 +24,8 @@ func main() {
 	storage.SetClient(client)
 
 	fmt.Printf("Starting product: %s (tags: %v)\n", products.Name, products.EnabledTags)
+
+	clictx.Init(client)
 
 	if err := cli.Run(); err != nil {
 		log.Fatalf("CLI error: %v", err)

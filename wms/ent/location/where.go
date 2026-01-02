@@ -239,6 +239,52 @@ func HasOrderLinesWith(preds ...predicate.OrderLine) predicate.Location {
 	})
 }
 
+// HasZones applies the HasEdge predicate on the "zones" edge.
+func HasZones() predicate.Location {
+	return predicate.Location(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, ZonesTable, ZonesColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasZonesWith applies the HasEdge predicate on the "zones" edge with a given conditions (other predicates).
+func HasZonesWith(preds ...predicate.Zone) predicate.Location {
+	return predicate.Location(func(s *sql.Selector) {
+		step := newZonesStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasBins applies the HasEdge predicate on the "bins" edge.
+func HasBins() predicate.Location {
+	return predicate.Location(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, BinsTable, BinsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBinsWith applies the HasEdge predicate on the "bins" edge with a given conditions (other predicates).
+func HasBinsWith(preds ...predicate.Bin) predicate.Location {
+	return predicate.Location(func(s *sql.Selector) {
+		step := newBinsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Location) predicate.Location {
 	return predicate.Location(sql.AndPredicates(predicates...))

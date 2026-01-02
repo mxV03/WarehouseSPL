@@ -9,6 +9,7 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/stockmovement"
@@ -75,6 +76,21 @@ func (_c *ItemCreate) AddOrderLines(v ...*OrderLine) *ItemCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddOrderLineIDs(ids...)
+}
+
+// AddBinIDs adds the "bins" edge to the Bin entity by IDs.
+func (_c *ItemCreate) AddBinIDs(ids ...int) *ItemCreate {
+	_c.mutation.AddBinIDs(ids...)
+	return _c
+}
+
+// AddBins adds the "bins" edges to the Bin entity.
+func (_c *ItemCreate) AddBins(v ...*Bin) *ItemCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBinIDs(ids...)
 }
 
 // Mutation returns the ItemMutation object of the builder.
@@ -190,6 +206,22 @@ func (_c *ItemCreate) createSpec() (*Item, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

@@ -5,18 +5,26 @@ package ent
 import (
 	"time"
 
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/schema"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	binFields := schema.Bin{}.Fields()
+	_ = binFields
+	// binDescCode is the schema descriptor for code field.
+	binDescCode := binFields[0].Descriptor()
+	// bin.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	bin.CodeValidator = binDescCode.Validators[0].(func(string) error)
 	itemFields := schema.Item{}.Fields()
 	_ = itemFields
 	// itemDescSKU is the schema descriptor for SKU field.
@@ -77,4 +85,10 @@ func init() {
 	stockmovementDescCreatedAt := stockmovementFields[2].Descriptor()
 	// stockmovement.DefaultCreatedAt holds the default value on creation for the created_at field.
 	stockmovement.DefaultCreatedAt = stockmovementDescCreatedAt.Default.(func() time.Time)
+	zoneFields := schema.Zone{}.Fields()
+	_ = zoneFields
+	// zoneDescCode is the schema descriptor for code field.
+	zoneDescCode := zoneFields[0].Descriptor()
+	// zone.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	zone.CodeValidator = zoneDescCode.Validators[0].(func(string) error)
 }

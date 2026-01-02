@@ -9,9 +9,11 @@ import (
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
 // LocationCreate is the builder for creating a Location entity.
@@ -61,6 +63,36 @@ func (_c *LocationCreate) AddOrderLines(v ...*OrderLine) *LocationCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddOrderLineIDs(ids...)
+}
+
+// AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
+func (_c *LocationCreate) AddZoneIDs(ids ...int) *LocationCreate {
+	_c.mutation.AddZoneIDs(ids...)
+	return _c
+}
+
+// AddZones adds the "zones" edges to the Zone entity.
+func (_c *LocationCreate) AddZones(v ...*Zone) *LocationCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddZoneIDs(ids...)
+}
+
+// AddBinIDs adds the "bins" edge to the Bin entity by IDs.
+func (_c *LocationCreate) AddBinIDs(ids ...int) *LocationCreate {
+	_c.mutation.AddBinIDs(ids...)
+	return _c
+}
+
+// AddBins adds the "bins" edges to the Bin entity.
+func (_c *LocationCreate) AddBins(v ...*Bin) *LocationCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddBinIDs(ids...)
 }
 
 // Mutation returns the LocationMutation object of the builder.
@@ -172,6 +204,38 @@ func (_c *LocationCreate) createSpec() (*Location, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.ZonesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.BinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

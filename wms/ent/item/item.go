@@ -22,6 +22,8 @@ const (
 	EdgeMovements = "movements"
 	// EdgeOrderLines holds the string denoting the order_lines edge name in mutations.
 	EdgeOrderLines = "order_lines"
+	// EdgeBins holds the string denoting the bins edge name in mutations.
+	EdgeBins = "bins"
 	// Table holds the table name of the item in the database.
 	Table = "items"
 	// MovementsTable is the table that holds the movements relation/edge.
@@ -38,6 +40,11 @@ const (
 	OrderLinesInverseTable = "order_lines"
 	// OrderLinesColumn is the table column denoting the order_lines relation/edge.
 	OrderLinesColumn = "item_order_lines"
+	// BinsTable is the table that holds the bins relation/edge. The primary key declared below.
+	BinsTable = "bin_items"
+	// BinsInverseTable is the table name for the Bin entity.
+	// It exists in this package in order to avoid circular dependency with the "bin" package.
+	BinsInverseTable = "bins"
 )
 
 // Columns holds all SQL columns for item fields.
@@ -47,6 +54,12 @@ var Columns = []string{
 	FieldName,
 	FieldDescription,
 }
+
+var (
+	// BinsPrimaryKey and BinsColumn2 are the table columns denoting the
+	// primary key for the bins relation (M2M).
+	BinsPrimaryKey = []string{"bin_id", "item_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -115,6 +128,20 @@ func ByOrderLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOrderLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByBinsCount orders the results by bins count.
+func ByBinsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBinsStep(), opts...)
+	}
+}
+
+// ByBins orders the results by bins terms.
+func ByBins(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBinsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newMovementsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -127,5 +154,12 @@ func newOrderLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, OrderLinesTable, OrderLinesColumn),
+	)
+}
+func newBinsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BinsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2M, true, BinsTable, BinsPrimaryKey...),
 	)
 }

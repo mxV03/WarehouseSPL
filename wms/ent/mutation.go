@@ -11,12 +11,14 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
 const (
@@ -28,12 +30,627 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeBin           = "Bin"
 	TypeItem          = "Item"
 	TypeLocation      = "Location"
 	TypeOrder         = "Order"
 	TypeOrderLine     = "OrderLine"
 	TypeStockMovement = "StockMovement"
+	TypeZone          = "Zone"
 )
+
+// BinMutation represents an operation that mutates the Bin nodes in the graph.
+type BinMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	code            *string
+	name            *string
+	clearedFields   map[string]struct{}
+	location        *int
+	clearedlocation bool
+	zone            *int
+	clearedzone     bool
+	items           map[int]struct{}
+	removeditems    map[int]struct{}
+	cleareditems    bool
+	done            bool
+	oldValue        func(context.Context) (*Bin, error)
+	predicates      []predicate.Bin
+}
+
+var _ ent.Mutation = (*BinMutation)(nil)
+
+// binOption allows management of the mutation configuration using functional options.
+type binOption func(*BinMutation)
+
+// newBinMutation creates new mutation for the Bin entity.
+func newBinMutation(c config, op Op, opts ...binOption) *BinMutation {
+	m := &BinMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeBin,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withBinID sets the ID field of the mutation.
+func withBinID(id int) binOption {
+	return func(m *BinMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Bin
+		)
+		m.oldValue = func(ctx context.Context) (*Bin, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Bin.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withBin sets the old Bin of the mutation.
+func withBin(node *Bin) binOption {
+	return func(m *BinMutation) {
+		m.oldValue = func(context.Context) (*Bin, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m BinMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m BinMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *BinMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *BinMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Bin.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCode sets the "code" field.
+func (m *BinMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *BinMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the Bin entity.
+// If the Bin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BinMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *BinMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *BinMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *BinMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Bin entity.
+// If the Bin object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *BinMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ClearName clears the value of the "name" field.
+func (m *BinMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[bin.FieldName] = struct{}{}
+}
+
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *BinMutation) NameCleared() bool {
+	_, ok := m.clearedFields[bin.FieldName]
+	return ok
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *BinMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, bin.FieldName)
+}
+
+// SetLocationID sets the "location" edge to the Location entity by id.
+func (m *BinMutation) SetLocationID(id int) {
+	m.location = &id
+}
+
+// ClearLocation clears the "location" edge to the Location entity.
+func (m *BinMutation) ClearLocation() {
+	m.clearedlocation = true
+}
+
+// LocationCleared reports if the "location" edge to the Location entity was cleared.
+func (m *BinMutation) LocationCleared() bool {
+	return m.clearedlocation
+}
+
+// LocationID returns the "location" edge ID in the mutation.
+func (m *BinMutation) LocationID() (id int, exists bool) {
+	if m.location != nil {
+		return *m.location, true
+	}
+	return
+}
+
+// LocationIDs returns the "location" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LocationID instead. It exists only for internal usage by the builders.
+func (m *BinMutation) LocationIDs() (ids []int) {
+	if id := m.location; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLocation resets all changes to the "location" edge.
+func (m *BinMutation) ResetLocation() {
+	m.location = nil
+	m.clearedlocation = false
+}
+
+// SetZoneID sets the "zone" edge to the Zone entity by id.
+func (m *BinMutation) SetZoneID(id int) {
+	m.zone = &id
+}
+
+// ClearZone clears the "zone" edge to the Zone entity.
+func (m *BinMutation) ClearZone() {
+	m.clearedzone = true
+}
+
+// ZoneCleared reports if the "zone" edge to the Zone entity was cleared.
+func (m *BinMutation) ZoneCleared() bool {
+	return m.clearedzone
+}
+
+// ZoneID returns the "zone" edge ID in the mutation.
+func (m *BinMutation) ZoneID() (id int, exists bool) {
+	if m.zone != nil {
+		return *m.zone, true
+	}
+	return
+}
+
+// ZoneIDs returns the "zone" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ZoneID instead. It exists only for internal usage by the builders.
+func (m *BinMutation) ZoneIDs() (ids []int) {
+	if id := m.zone; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetZone resets all changes to the "zone" edge.
+func (m *BinMutation) ResetZone() {
+	m.zone = nil
+	m.clearedzone = false
+}
+
+// AddItemIDs adds the "items" edge to the Item entity by ids.
+func (m *BinMutation) AddItemIDs(ids ...int) {
+	if m.items == nil {
+		m.items = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearItems clears the "items" edge to the Item entity.
+func (m *BinMutation) ClearItems() {
+	m.cleareditems = true
+}
+
+// ItemsCleared reports if the "items" edge to the Item entity was cleared.
+func (m *BinMutation) ItemsCleared() bool {
+	return m.cleareditems
+}
+
+// RemoveItemIDs removes the "items" edge to the Item entity by IDs.
+func (m *BinMutation) RemoveItemIDs(ids ...int) {
+	if m.removeditems == nil {
+		m.removeditems = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.items, ids[i])
+		m.removeditems[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedItems returns the removed IDs of the "items" edge to the Item entity.
+func (m *BinMutation) RemovedItemsIDs() (ids []int) {
+	for id := range m.removeditems {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ItemsIDs returns the "items" edge IDs in the mutation.
+func (m *BinMutation) ItemsIDs() (ids []int) {
+	for id := range m.items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetItems resets all changes to the "items" edge.
+func (m *BinMutation) ResetItems() {
+	m.items = nil
+	m.cleareditems = false
+	m.removeditems = nil
+}
+
+// Where appends a list predicates to the BinMutation builder.
+func (m *BinMutation) Where(ps ...predicate.Bin) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the BinMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *BinMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Bin, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *BinMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *BinMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Bin).
+func (m *BinMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *BinMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.code != nil {
+		fields = append(fields, bin.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, bin.FieldName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *BinMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case bin.FieldCode:
+		return m.Code()
+	case bin.FieldName:
+		return m.Name()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *BinMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case bin.FieldCode:
+		return m.OldCode(ctx)
+	case bin.FieldName:
+		return m.OldName(ctx)
+	}
+	return nil, fmt.Errorf("unknown Bin field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BinMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case bin.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case bin.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Bin field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *BinMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *BinMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *BinMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Bin numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *BinMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(bin.FieldName) {
+		fields = append(fields, bin.FieldName)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *BinMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *BinMutation) ClearField(name string) error {
+	switch name {
+	case bin.FieldName:
+		m.ClearName()
+		return nil
+	}
+	return fmt.Errorf("unknown Bin nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *BinMutation) ResetField(name string) error {
+	switch name {
+	case bin.FieldCode:
+		m.ResetCode()
+		return nil
+	case bin.FieldName:
+		m.ResetName()
+		return nil
+	}
+	return fmt.Errorf("unknown Bin field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *BinMutation) AddedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.location != nil {
+		edges = append(edges, bin.EdgeLocation)
+	}
+	if m.zone != nil {
+		edges = append(edges, bin.EdgeZone)
+	}
+	if m.items != nil {
+		edges = append(edges, bin.EdgeItems)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *BinMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case bin.EdgeLocation:
+		if id := m.location; id != nil {
+			return []ent.Value{*id}
+		}
+	case bin.EdgeZone:
+		if id := m.zone; id != nil {
+			return []ent.Value{*id}
+		}
+	case bin.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.items))
+		for id := range m.items {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *BinMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.removeditems != nil {
+		edges = append(edges, bin.EdgeItems)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *BinMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case bin.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.removeditems))
+		for id := range m.removeditems {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *BinMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 3)
+	if m.clearedlocation {
+		edges = append(edges, bin.EdgeLocation)
+	}
+	if m.clearedzone {
+		edges = append(edges, bin.EdgeZone)
+	}
+	if m.cleareditems {
+		edges = append(edges, bin.EdgeItems)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *BinMutation) EdgeCleared(name string) bool {
+	switch name {
+	case bin.EdgeLocation:
+		return m.clearedlocation
+	case bin.EdgeZone:
+		return m.clearedzone
+	case bin.EdgeItems:
+		return m.cleareditems
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *BinMutation) ClearEdge(name string) error {
+	switch name {
+	case bin.EdgeLocation:
+		m.ClearLocation()
+		return nil
+	case bin.EdgeZone:
+		m.ClearZone()
+		return nil
+	}
+	return fmt.Errorf("unknown Bin unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *BinMutation) ResetEdge(name string) error {
+	switch name {
+	case bin.EdgeLocation:
+		m.ResetLocation()
+		return nil
+	case bin.EdgeZone:
+		m.ResetZone()
+		return nil
+	case bin.EdgeItems:
+		m.ResetItems()
+		return nil
+	}
+	return fmt.Errorf("unknown Bin edge %s", name)
+}
 
 // ItemMutation represents an operation that mutates the Item nodes in the graph.
 type ItemMutation struct {
@@ -51,6 +668,9 @@ type ItemMutation struct {
 	order_lines        map[int]struct{}
 	removedorder_lines map[int]struct{}
 	clearedorder_lines bool
+	bins               map[int]struct{}
+	removedbins        map[int]struct{}
+	clearedbins        bool
 	done               bool
 	oldValue           func(context.Context) (*Item, error)
 	predicates         []predicate.Item
@@ -383,6 +1003,60 @@ func (m *ItemMutation) ResetOrderLines() {
 	m.removedorder_lines = nil
 }
 
+// AddBinIDs adds the "bins" edge to the Bin entity by ids.
+func (m *ItemMutation) AddBinIDs(ids ...int) {
+	if m.bins == nil {
+		m.bins = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.bins[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBins clears the "bins" edge to the Bin entity.
+func (m *ItemMutation) ClearBins() {
+	m.clearedbins = true
+}
+
+// BinsCleared reports if the "bins" edge to the Bin entity was cleared.
+func (m *ItemMutation) BinsCleared() bool {
+	return m.clearedbins
+}
+
+// RemoveBinIDs removes the "bins" edge to the Bin entity by IDs.
+func (m *ItemMutation) RemoveBinIDs(ids ...int) {
+	if m.removedbins == nil {
+		m.removedbins = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.bins, ids[i])
+		m.removedbins[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBins returns the removed IDs of the "bins" edge to the Bin entity.
+func (m *ItemMutation) RemovedBinsIDs() (ids []int) {
+	for id := range m.removedbins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BinsIDs returns the "bins" edge IDs in the mutation.
+func (m *ItemMutation) BinsIDs() (ids []int) {
+	for id := range m.bins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBins resets all changes to the "bins" edge.
+func (m *ItemMutation) ResetBins() {
+	m.bins = nil
+	m.clearedbins = false
+	m.removedbins = nil
+}
+
 // Where appends a list predicates to the ItemMutation builder.
 func (m *ItemMutation) Where(ps ...predicate.Item) {
 	m.predicates = append(m.predicates, ps...)
@@ -559,12 +1233,15 @@ func (m *ItemMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *ItemMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.movements != nil {
 		edges = append(edges, item.EdgeMovements)
 	}
 	if m.order_lines != nil {
 		edges = append(edges, item.EdgeOrderLines)
+	}
+	if m.bins != nil {
+		edges = append(edges, item.EdgeBins)
 	}
 	return edges
 }
@@ -585,18 +1262,27 @@ func (m *ItemMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case item.EdgeBins:
+		ids := make([]ent.Value, 0, len(m.bins))
+		for id := range m.bins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *ItemMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedmovements != nil {
 		edges = append(edges, item.EdgeMovements)
 	}
 	if m.removedorder_lines != nil {
 		edges = append(edges, item.EdgeOrderLines)
+	}
+	if m.removedbins != nil {
+		edges = append(edges, item.EdgeBins)
 	}
 	return edges
 }
@@ -617,18 +1303,27 @@ func (m *ItemMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case item.EdgeBins:
+		ids := make([]ent.Value, 0, len(m.removedbins))
+		for id := range m.removedbins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *ItemMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedmovements {
 		edges = append(edges, item.EdgeMovements)
 	}
 	if m.clearedorder_lines {
 		edges = append(edges, item.EdgeOrderLines)
+	}
+	if m.clearedbins {
+		edges = append(edges, item.EdgeBins)
 	}
 	return edges
 }
@@ -641,6 +1336,8 @@ func (m *ItemMutation) EdgeCleared(name string) bool {
 		return m.clearedmovements
 	case item.EdgeOrderLines:
 		return m.clearedorder_lines
+	case item.EdgeBins:
+		return m.clearedbins
 	}
 	return false
 }
@@ -663,6 +1360,9 @@ func (m *ItemMutation) ResetEdge(name string) error {
 	case item.EdgeOrderLines:
 		m.ResetOrderLines()
 		return nil
+	case item.EdgeBins:
+		m.ResetBins()
+		return nil
 	}
 	return fmt.Errorf("unknown Item edge %s", name)
 }
@@ -682,6 +1382,12 @@ type LocationMutation struct {
 	order_lines        map[int]struct{}
 	removedorder_lines map[int]struct{}
 	clearedorder_lines bool
+	zones              map[int]struct{}
+	removedzones       map[int]struct{}
+	clearedzones       bool
+	bins               map[int]struct{}
+	removedbins        map[int]struct{}
+	clearedbins        bool
 	done               bool
 	oldValue           func(context.Context) (*Location, error)
 	predicates         []predicate.Location
@@ -965,6 +1671,114 @@ func (m *LocationMutation) ResetOrderLines() {
 	m.removedorder_lines = nil
 }
 
+// AddZoneIDs adds the "zones" edge to the Zone entity by ids.
+func (m *LocationMutation) AddZoneIDs(ids ...int) {
+	if m.zones == nil {
+		m.zones = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.zones[ids[i]] = struct{}{}
+	}
+}
+
+// ClearZones clears the "zones" edge to the Zone entity.
+func (m *LocationMutation) ClearZones() {
+	m.clearedzones = true
+}
+
+// ZonesCleared reports if the "zones" edge to the Zone entity was cleared.
+func (m *LocationMutation) ZonesCleared() bool {
+	return m.clearedzones
+}
+
+// RemoveZoneIDs removes the "zones" edge to the Zone entity by IDs.
+func (m *LocationMutation) RemoveZoneIDs(ids ...int) {
+	if m.removedzones == nil {
+		m.removedzones = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.zones, ids[i])
+		m.removedzones[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedZones returns the removed IDs of the "zones" edge to the Zone entity.
+func (m *LocationMutation) RemovedZonesIDs() (ids []int) {
+	for id := range m.removedzones {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ZonesIDs returns the "zones" edge IDs in the mutation.
+func (m *LocationMutation) ZonesIDs() (ids []int) {
+	for id := range m.zones {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetZones resets all changes to the "zones" edge.
+func (m *LocationMutation) ResetZones() {
+	m.zones = nil
+	m.clearedzones = false
+	m.removedzones = nil
+}
+
+// AddBinIDs adds the "bins" edge to the Bin entity by ids.
+func (m *LocationMutation) AddBinIDs(ids ...int) {
+	if m.bins == nil {
+		m.bins = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.bins[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBins clears the "bins" edge to the Bin entity.
+func (m *LocationMutation) ClearBins() {
+	m.clearedbins = true
+}
+
+// BinsCleared reports if the "bins" edge to the Bin entity was cleared.
+func (m *LocationMutation) BinsCleared() bool {
+	return m.clearedbins
+}
+
+// RemoveBinIDs removes the "bins" edge to the Bin entity by IDs.
+func (m *LocationMutation) RemoveBinIDs(ids ...int) {
+	if m.removedbins == nil {
+		m.removedbins = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.bins, ids[i])
+		m.removedbins[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBins returns the removed IDs of the "bins" edge to the Bin entity.
+func (m *LocationMutation) RemovedBinsIDs() (ids []int) {
+	for id := range m.removedbins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BinsIDs returns the "bins" edge IDs in the mutation.
+func (m *LocationMutation) BinsIDs() (ids []int) {
+	for id := range m.bins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBins resets all changes to the "bins" edge.
+func (m *LocationMutation) ResetBins() {
+	m.bins = nil
+	m.clearedbins = false
+	m.removedbins = nil
+}
+
 // Where appends a list predicates to the LocationMutation builder.
 func (m *LocationMutation) Where(ps ...predicate.Location) {
 	m.predicates = append(m.predicates, ps...)
@@ -1115,12 +1929,18 @@ func (m *LocationMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LocationMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.movements != nil {
 		edges = append(edges, location.EdgeMovements)
 	}
 	if m.order_lines != nil {
 		edges = append(edges, location.EdgeOrderLines)
+	}
+	if m.zones != nil {
+		edges = append(edges, location.EdgeZones)
+	}
+	if m.bins != nil {
+		edges = append(edges, location.EdgeBins)
 	}
 	return edges
 }
@@ -1141,18 +1961,36 @@ func (m *LocationMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case location.EdgeZones:
+		ids := make([]ent.Value, 0, len(m.zones))
+		for id := range m.zones {
+			ids = append(ids, id)
+		}
+		return ids
+	case location.EdgeBins:
+		ids := make([]ent.Value, 0, len(m.bins))
+		for id := range m.bins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LocationMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.removedmovements != nil {
 		edges = append(edges, location.EdgeMovements)
 	}
 	if m.removedorder_lines != nil {
 		edges = append(edges, location.EdgeOrderLines)
+	}
+	if m.removedzones != nil {
+		edges = append(edges, location.EdgeZones)
+	}
+	if m.removedbins != nil {
+		edges = append(edges, location.EdgeBins)
 	}
 	return edges
 }
@@ -1173,18 +2011,36 @@ func (m *LocationMutation) RemovedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case location.EdgeZones:
+		ids := make([]ent.Value, 0, len(m.removedzones))
+		for id := range m.removedzones {
+			ids = append(ids, id)
+		}
+		return ids
+	case location.EdgeBins:
+		ids := make([]ent.Value, 0, len(m.removedbins))
+		for id := range m.removedbins {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LocationMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 4)
 	if m.clearedmovements {
 		edges = append(edges, location.EdgeMovements)
 	}
 	if m.clearedorder_lines {
 		edges = append(edges, location.EdgeOrderLines)
+	}
+	if m.clearedzones {
+		edges = append(edges, location.EdgeZones)
+	}
+	if m.clearedbins {
+		edges = append(edges, location.EdgeBins)
 	}
 	return edges
 }
@@ -1197,6 +2053,10 @@ func (m *LocationMutation) EdgeCleared(name string) bool {
 		return m.clearedmovements
 	case location.EdgeOrderLines:
 		return m.clearedorder_lines
+	case location.EdgeZones:
+		return m.clearedzones
+	case location.EdgeBins:
+		return m.clearedbins
 	}
 	return false
 }
@@ -1218,6 +2078,12 @@ func (m *LocationMutation) ResetEdge(name string) error {
 		return nil
 	case location.EdgeOrderLines:
 		m.ResetOrderLines()
+		return nil
+	case location.EdgeZones:
+		m.ResetZones()
+		return nil
+	case location.EdgeBins:
+		m.ResetBins()
 		return nil
 	}
 	return fmt.Errorf("unknown Location edge %s", name)
@@ -3021,4 +3887,558 @@ func (m *StockMovementMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown StockMovement edge %s", name)
+}
+
+// ZoneMutation represents an operation that mutates the Zone nodes in the graph.
+type ZoneMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int
+	code            *string
+	name            *string
+	clearedFields   map[string]struct{}
+	location        *int
+	clearedlocation bool
+	bins            map[int]struct{}
+	removedbins     map[int]struct{}
+	clearedbins     bool
+	done            bool
+	oldValue        func(context.Context) (*Zone, error)
+	predicates      []predicate.Zone
+}
+
+var _ ent.Mutation = (*ZoneMutation)(nil)
+
+// zoneOption allows management of the mutation configuration using functional options.
+type zoneOption func(*ZoneMutation)
+
+// newZoneMutation creates new mutation for the Zone entity.
+func newZoneMutation(c config, op Op, opts ...zoneOption) *ZoneMutation {
+	m := &ZoneMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeZone,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withZoneID sets the ID field of the mutation.
+func withZoneID(id int) zoneOption {
+	return func(m *ZoneMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Zone
+		)
+		m.oldValue = func(ctx context.Context) (*Zone, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Zone.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withZone sets the old Zone of the mutation.
+func withZone(node *Zone) zoneOption {
+	return func(m *ZoneMutation) {
+		m.oldValue = func(context.Context) (*Zone, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m ZoneMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m ZoneMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *ZoneMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *ZoneMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Zone.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCode sets the "code" field.
+func (m *ZoneMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *ZoneMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the Zone entity.
+// If the Zone object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ZoneMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *ZoneMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *ZoneMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *ZoneMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Zone entity.
+// If the Zone object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ZoneMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ClearName clears the value of the "name" field.
+func (m *ZoneMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[zone.FieldName] = struct{}{}
+}
+
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *ZoneMutation) NameCleared() bool {
+	_, ok := m.clearedFields[zone.FieldName]
+	return ok
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *ZoneMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, zone.FieldName)
+}
+
+// SetLocationID sets the "location" edge to the Location entity by id.
+func (m *ZoneMutation) SetLocationID(id int) {
+	m.location = &id
+}
+
+// ClearLocation clears the "location" edge to the Location entity.
+func (m *ZoneMutation) ClearLocation() {
+	m.clearedlocation = true
+}
+
+// LocationCleared reports if the "location" edge to the Location entity was cleared.
+func (m *ZoneMutation) LocationCleared() bool {
+	return m.clearedlocation
+}
+
+// LocationID returns the "location" edge ID in the mutation.
+func (m *ZoneMutation) LocationID() (id int, exists bool) {
+	if m.location != nil {
+		return *m.location, true
+	}
+	return
+}
+
+// LocationIDs returns the "location" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LocationID instead. It exists only for internal usage by the builders.
+func (m *ZoneMutation) LocationIDs() (ids []int) {
+	if id := m.location; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLocation resets all changes to the "location" edge.
+func (m *ZoneMutation) ResetLocation() {
+	m.location = nil
+	m.clearedlocation = false
+}
+
+// AddBinIDs adds the "bins" edge to the Bin entity by ids.
+func (m *ZoneMutation) AddBinIDs(ids ...int) {
+	if m.bins == nil {
+		m.bins = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.bins[ids[i]] = struct{}{}
+	}
+}
+
+// ClearBins clears the "bins" edge to the Bin entity.
+func (m *ZoneMutation) ClearBins() {
+	m.clearedbins = true
+}
+
+// BinsCleared reports if the "bins" edge to the Bin entity was cleared.
+func (m *ZoneMutation) BinsCleared() bool {
+	return m.clearedbins
+}
+
+// RemoveBinIDs removes the "bins" edge to the Bin entity by IDs.
+func (m *ZoneMutation) RemoveBinIDs(ids ...int) {
+	if m.removedbins == nil {
+		m.removedbins = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.bins, ids[i])
+		m.removedbins[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedBins returns the removed IDs of the "bins" edge to the Bin entity.
+func (m *ZoneMutation) RemovedBinsIDs() (ids []int) {
+	for id := range m.removedbins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// BinsIDs returns the "bins" edge IDs in the mutation.
+func (m *ZoneMutation) BinsIDs() (ids []int) {
+	for id := range m.bins {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetBins resets all changes to the "bins" edge.
+func (m *ZoneMutation) ResetBins() {
+	m.bins = nil
+	m.clearedbins = false
+	m.removedbins = nil
+}
+
+// Where appends a list predicates to the ZoneMutation builder.
+func (m *ZoneMutation) Where(ps ...predicate.Zone) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the ZoneMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *ZoneMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Zone, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *ZoneMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *ZoneMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Zone).
+func (m *ZoneMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *ZoneMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.code != nil {
+		fields = append(fields, zone.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, zone.FieldName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *ZoneMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case zone.FieldCode:
+		return m.Code()
+	case zone.FieldName:
+		return m.Name()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *ZoneMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case zone.FieldCode:
+		return m.OldCode(ctx)
+	case zone.FieldName:
+		return m.OldName(ctx)
+	}
+	return nil, fmt.Errorf("unknown Zone field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ZoneMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case zone.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case zone.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Zone field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *ZoneMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *ZoneMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *ZoneMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Zone numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *ZoneMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(zone.FieldName) {
+		fields = append(fields, zone.FieldName)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *ZoneMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *ZoneMutation) ClearField(name string) error {
+	switch name {
+	case zone.FieldName:
+		m.ClearName()
+		return nil
+	}
+	return fmt.Errorf("unknown Zone nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *ZoneMutation) ResetField(name string) error {
+	switch name {
+	case zone.FieldCode:
+		m.ResetCode()
+		return nil
+	case zone.FieldName:
+		m.ResetName()
+		return nil
+	}
+	return fmt.Errorf("unknown Zone field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *ZoneMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.location != nil {
+		edges = append(edges, zone.EdgeLocation)
+	}
+	if m.bins != nil {
+		edges = append(edges, zone.EdgeBins)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *ZoneMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case zone.EdgeLocation:
+		if id := m.location; id != nil {
+			return []ent.Value{*id}
+		}
+	case zone.EdgeBins:
+		ids := make([]ent.Value, 0, len(m.bins))
+		for id := range m.bins {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *ZoneMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedbins != nil {
+		edges = append(edges, zone.EdgeBins)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *ZoneMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case zone.EdgeBins:
+		ids := make([]ent.Value, 0, len(m.removedbins))
+		for id := range m.removedbins {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *ZoneMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedlocation {
+		edges = append(edges, zone.EdgeLocation)
+	}
+	if m.clearedbins {
+		edges = append(edges, zone.EdgeBins)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *ZoneMutation) EdgeCleared(name string) bool {
+	switch name {
+	case zone.EdgeLocation:
+		return m.clearedlocation
+	case zone.EdgeBins:
+		return m.clearedbins
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *ZoneMutation) ClearEdge(name string) error {
+	switch name {
+	case zone.EdgeLocation:
+		m.ClearLocation()
+		return nil
+	}
+	return fmt.Errorf("unknown Zone unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *ZoneMutation) ResetEdge(name string) error {
+	switch name {
+	case zone.EdgeLocation:
+		m.ResetLocation()
+		return nil
+	case zone.EdgeBins:
+		m.ResetBins()
+		return nil
+	}
+	return fmt.Errorf("unknown Zone edge %s", name)
 }

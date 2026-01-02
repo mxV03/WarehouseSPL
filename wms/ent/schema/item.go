@@ -29,5 +29,8 @@ func (Item) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("movements", StockMovement.Type),
 		edge.To("order_lines", OrderLine.Type),
+
+		edge.From("bins", Bin.Type).
+			Ref("items"),
 	}
 }

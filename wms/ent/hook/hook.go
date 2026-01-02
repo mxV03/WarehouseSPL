@@ -9,6 +9,18 @@ import (
 	"github.com/mxV03/wms/ent"
 )
 
+// The BinFunc type is an adapter to allow the use of ordinary
+// function as Bin mutator.
+type BinFunc func(context.Context, *ent.BinMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f BinFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.BinMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.BinMutation", m)
+}
+
 // The ItemFunc type is an adapter to allow the use of ordinary
 // function as Item mutator.
 type ItemFunc func(context.Context, *ent.ItemMutation) (ent.Value, error)
@@ -67,6 +79,18 @@ func (f StockMovementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StockMovementMutation", m)
+}
+
+// The ZoneFunc type is an adapter to allow the use of ordinary
+// function as Zone mutator.
+type ZoneFunc func(context.Context, *ent.ZoneMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f ZoneFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.ZoneMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ZoneMutation", m)
 }
 
 // Condition is a hook condition function.

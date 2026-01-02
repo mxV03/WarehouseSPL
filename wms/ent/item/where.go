@@ -319,6 +319,29 @@ func HasOrderLinesWith(preds ...predicate.OrderLine) predicate.Item {
 	})
 }
 
+// HasBins applies the HasEdge predicate on the "bins" edge.
+func HasBins() predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, BinsTable, BinsPrimaryKey...),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasBinsWith applies the HasEdge predicate on the "bins" edge with a given conditions (other predicates).
+func HasBinsWith(preds ...predicate.Bin) predicate.Item {
+	return predicate.Item(func(s *sql.Selector) {
+		step := newBinsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Item) predicate.Item {
 	return predicate.Item(sql.AndPredicates(predicates...))

@@ -20,6 +20,10 @@ const (
 	EdgeMovements = "movements"
 	// EdgeOrderLines holds the string denoting the order_lines edge name in mutations.
 	EdgeOrderLines = "order_lines"
+	// EdgeZones holds the string denoting the zones edge name in mutations.
+	EdgeZones = "zones"
+	// EdgeBins holds the string denoting the bins edge name in mutations.
+	EdgeBins = "bins"
 	// Table holds the table name of the location in the database.
 	Table = "locations"
 	// MovementsTable is the table that holds the movements relation/edge.
@@ -36,6 +40,20 @@ const (
 	OrderLinesInverseTable = "order_lines"
 	// OrderLinesColumn is the table column denoting the order_lines relation/edge.
 	OrderLinesColumn = "location_order_lines"
+	// ZonesTable is the table that holds the zones relation/edge.
+	ZonesTable = "zones"
+	// ZonesInverseTable is the table name for the Zone entity.
+	// It exists in this package in order to avoid circular dependency with the "zone" package.
+	ZonesInverseTable = "zones"
+	// ZonesColumn is the table column denoting the zones relation/edge.
+	ZonesColumn = "location_zones"
+	// BinsTable is the table that holds the bins relation/edge.
+	BinsTable = "bins"
+	// BinsInverseTable is the table name for the Bin entity.
+	// It exists in this package in order to avoid circular dependency with the "bin" package.
+	BinsInverseTable = "bins"
+	// BinsColumn is the table column denoting the bins relation/edge.
+	BinsColumn = "location_bins"
 )
 
 // Columns holds all SQL columns for location fields.
@@ -107,6 +125,34 @@ func ByOrderLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newOrderLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByZonesCount orders the results by zones count.
+func ByZonesCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newZonesStep(), opts...)
+	}
+}
+
+// ByZones orders the results by zones terms.
+func ByZones(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newZonesStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByBinsCount orders the results by bins count.
+func ByBinsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newBinsStep(), opts...)
+	}
+}
+
+// ByBins orders the results by bins terms.
+func ByBins(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newBinsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newMovementsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -119,5 +165,19 @@ func newOrderLinesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrderLinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, OrderLinesTable, OrderLinesColumn),
+	)
+}
+func newZonesStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(ZonesInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, ZonesTable, ZonesColumn),
+	)
+}
+func newBinsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(BinsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, BinsTable, BinsColumn),
 	)
 }

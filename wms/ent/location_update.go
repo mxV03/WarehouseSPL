@@ -10,10 +10,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
 // LocationUpdate is the builder for updating Location entities.
@@ -87,6 +89,36 @@ func (_u *LocationUpdate) AddOrderLines(v ...*OrderLine) *LocationUpdate {
 	return _u.AddOrderLineIDs(ids...)
 }
 
+// AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
+func (_u *LocationUpdate) AddZoneIDs(ids ...int) *LocationUpdate {
+	_u.mutation.AddZoneIDs(ids...)
+	return _u
+}
+
+// AddZones adds the "zones" edges to the Zone entity.
+func (_u *LocationUpdate) AddZones(v ...*Zone) *LocationUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddZoneIDs(ids...)
+}
+
+// AddBinIDs adds the "bins" edge to the Bin entity by IDs.
+func (_u *LocationUpdate) AddBinIDs(ids ...int) *LocationUpdate {
+	_u.mutation.AddBinIDs(ids...)
+	return _u
+}
+
+// AddBins adds the "bins" edges to the Bin entity.
+func (_u *LocationUpdate) AddBins(v ...*Bin) *LocationUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBinIDs(ids...)
+}
+
 // Mutation returns the LocationMutation object of the builder.
 func (_u *LocationUpdate) Mutation() *LocationMutation {
 	return _u.mutation
@@ -132,6 +164,48 @@ func (_u *LocationUpdate) RemoveOrderLines(v ...*OrderLine) *LocationUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveOrderLineIDs(ids...)
+}
+
+// ClearZones clears all "zones" edges to the Zone entity.
+func (_u *LocationUpdate) ClearZones() *LocationUpdate {
+	_u.mutation.ClearZones()
+	return _u
+}
+
+// RemoveZoneIDs removes the "zones" edge to Zone entities by IDs.
+func (_u *LocationUpdate) RemoveZoneIDs(ids ...int) *LocationUpdate {
+	_u.mutation.RemoveZoneIDs(ids...)
+	return _u
+}
+
+// RemoveZones removes "zones" edges to Zone entities.
+func (_u *LocationUpdate) RemoveZones(v ...*Zone) *LocationUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveZoneIDs(ids...)
+}
+
+// ClearBins clears all "bins" edges to the Bin entity.
+func (_u *LocationUpdate) ClearBins() *LocationUpdate {
+	_u.mutation.ClearBins()
+	return _u
+}
+
+// RemoveBinIDs removes the "bins" edge to Bin entities by IDs.
+func (_u *LocationUpdate) RemoveBinIDs(ids ...int) *LocationUpdate {
+	_u.mutation.RemoveBinIDs(ids...)
+	return _u
+}
+
+// RemoveBins removes "bins" edges to Bin entities.
+func (_u *LocationUpdate) RemoveBins(v ...*Bin) *LocationUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBinIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -284,6 +358,96 @@ func (_u *LocationUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedZonesIDs(); len(nodes) > 0 && !_u.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ZonesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBinsIDs(); len(nodes) > 0 && !_u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{location.Label}
@@ -362,6 +526,36 @@ func (_u *LocationUpdateOne) AddOrderLines(v ...*OrderLine) *LocationUpdateOne {
 	return _u.AddOrderLineIDs(ids...)
 }
 
+// AddZoneIDs adds the "zones" edge to the Zone entity by IDs.
+func (_u *LocationUpdateOne) AddZoneIDs(ids ...int) *LocationUpdateOne {
+	_u.mutation.AddZoneIDs(ids...)
+	return _u
+}
+
+// AddZones adds the "zones" edges to the Zone entity.
+func (_u *LocationUpdateOne) AddZones(v ...*Zone) *LocationUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddZoneIDs(ids...)
+}
+
+// AddBinIDs adds the "bins" edge to the Bin entity by IDs.
+func (_u *LocationUpdateOne) AddBinIDs(ids ...int) *LocationUpdateOne {
+	_u.mutation.AddBinIDs(ids...)
+	return _u
+}
+
+// AddBins adds the "bins" edges to the Bin entity.
+func (_u *LocationUpdateOne) AddBins(v ...*Bin) *LocationUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBinIDs(ids...)
+}
+
 // Mutation returns the LocationMutation object of the builder.
 func (_u *LocationUpdateOne) Mutation() *LocationMutation {
 	return _u.mutation
@@ -407,6 +601,48 @@ func (_u *LocationUpdateOne) RemoveOrderLines(v ...*OrderLine) *LocationUpdateOn
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveOrderLineIDs(ids...)
+}
+
+// ClearZones clears all "zones" edges to the Zone entity.
+func (_u *LocationUpdateOne) ClearZones() *LocationUpdateOne {
+	_u.mutation.ClearZones()
+	return _u
+}
+
+// RemoveZoneIDs removes the "zones" edge to Zone entities by IDs.
+func (_u *LocationUpdateOne) RemoveZoneIDs(ids ...int) *LocationUpdateOne {
+	_u.mutation.RemoveZoneIDs(ids...)
+	return _u
+}
+
+// RemoveZones removes "zones" edges to Zone entities.
+func (_u *LocationUpdateOne) RemoveZones(v ...*Zone) *LocationUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveZoneIDs(ids...)
+}
+
+// ClearBins clears all "bins" edges to the Bin entity.
+func (_u *LocationUpdateOne) ClearBins() *LocationUpdateOne {
+	_u.mutation.ClearBins()
+	return _u
+}
+
+// RemoveBinIDs removes the "bins" edge to Bin entities by IDs.
+func (_u *LocationUpdateOne) RemoveBinIDs(ids ...int) *LocationUpdateOne {
+	_u.mutation.RemoveBinIDs(ids...)
+	return _u
+}
+
+// RemoveBins removes "bins" edges to Bin entities.
+func (_u *LocationUpdateOne) RemoveBins(v ...*Bin) *LocationUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBinIDs(ids...)
 }
 
 // Where appends a list predicates to the LocationUpdate builder.
@@ -582,6 +818,96 @@ func (_u *LocationUpdateOne) sqlSave(ctx context.Context) (_node *Location, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedZonesIDs(); len(nodes) > 0 && !_u.mutation.ZonesCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.ZonesIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.ZonesTable,
+			Columns: []string{location.ZonesColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(zone.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBinsIDs(); len(nodes) > 0 && !_u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   location.BinsTable,
+			Columns: []string{location.BinsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

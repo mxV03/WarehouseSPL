@@ -12,10 +12,12 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
 // LocationQuery is the builder for querying Location entities.
@@ -27,6 +29,8 @@ type LocationQuery struct {
 	predicates     []predicate.Location
 	withMovements  *StockMovementQuery
 	withOrderLines *OrderLineQuery
+	withZones      *ZoneQuery
+	withBins       *BinQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +104,50 @@ func (_q *LocationQuery) QueryOrderLines() *OrderLineQuery {
 			sqlgraph.From(location.Table, location.FieldID, selector),
 			sqlgraph.To(orderline.Table, orderline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, location.OrderLinesTable, location.OrderLinesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryZones chains the current query on the "zones" edge.
+func (_q *LocationQuery) QueryZones() *ZoneQuery {
+	query := (&ZoneClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, selector),
+			sqlgraph.To(zone.Table, zone.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, location.ZonesTable, location.ZonesColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryBins chains the current query on the "bins" edge.
+func (_q *LocationQuery) QueryBins() *BinQuery {
+	query := (&BinClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, selector),
+			sqlgraph.To(bin.Table, bin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, location.BinsTable, location.BinsColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +349,8 @@ func (_q *LocationQuery) Clone() *LocationQuery {
 		predicates:     append([]predicate.Location{}, _q.predicates...),
 		withMovements:  _q.withMovements.Clone(),
 		withOrderLines: _q.withOrderLines.Clone(),
+		withZones:      _q.withZones.Clone(),
+		withBins:       _q.withBins.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -326,6 +376,28 @@ func (_q *LocationQuery) WithOrderLines(opts ...func(*OrderLineQuery)) *Location
 		opt(query)
 	}
 	_q.withOrderLines = query
+	return _q
+}
+
+// WithZones tells the query-builder to eager-load the nodes that are connected to
+// the "zones" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LocationQuery) WithZones(opts ...func(*ZoneQuery)) *LocationQuery {
+	query := (&ZoneClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withZones = query
+	return _q
+}
+
+// WithBins tells the query-builder to eager-load the nodes that are connected to
+// the "bins" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LocationQuery) WithBins(opts ...func(*BinQuery)) *LocationQuery {
+	query := (&BinClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withBins = query
 	return _q
 }
 
@@ -407,9 +479,11 @@ func (_q *LocationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Loc
 	var (
 		nodes       = []*Location{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [4]bool{
 			_q.withMovements != nil,
 			_q.withOrderLines != nil,
+			_q.withZones != nil,
+			_q.withBins != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -441,6 +515,20 @@ func (_q *LocationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Loc
 		if err := _q.loadOrderLines(ctx, query, nodes,
 			func(n *Location) { n.Edges.OrderLines = []*OrderLine{} },
 			func(n *Location, e *OrderLine) { n.Edges.OrderLines = append(n.Edges.OrderLines, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withZones; query != nil {
+		if err := _q.loadZones(ctx, query, nodes,
+			func(n *Location) { n.Edges.Zones = []*Zone{} },
+			func(n *Location, e *Zone) { n.Edges.Zones = append(n.Edges.Zones, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withBins; query != nil {
+		if err := _q.loadBins(ctx, query, nodes,
+			func(n *Location) { n.Edges.Bins = []*Bin{} },
+			func(n *Location, e *Bin) { n.Edges.Bins = append(n.Edges.Bins, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -504,6 +592,68 @@ func (_q *LocationQuery) loadOrderLines(ctx context.Context, query *OrderLineQue
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "location_order_lines" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LocationQuery) loadZones(ctx context.Context, query *ZoneQuery, nodes []*Location, init func(*Location), assign func(*Location, *Zone)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Location)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Zone(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(location.ZonesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.location_zones
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "location_zones" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "location_zones" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LocationQuery) loadBins(ctx context.Context, query *BinQuery, nodes []*Location, init func(*Location), assign func(*Location, *Bin)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Location)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Bin(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(location.BinsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.location_bins
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "location_bins" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "location_bins" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

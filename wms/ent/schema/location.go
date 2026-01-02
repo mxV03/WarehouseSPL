@@ -27,5 +27,8 @@ func (Location) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("movements", StockMovement.Type),
 		edge.To("order_lines", OrderLine.Type),
+
+		edge.To("zones", Zone.Type),
+		edge.To("bins", Bin.Type),
 	}
 }

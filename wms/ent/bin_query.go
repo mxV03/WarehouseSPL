@@ -14,60 +14,61 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
-	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/predicate"
-	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
-// ItemQuery is the builder for querying Item entities.
-type ItemQuery struct {
+// BinQuery is the builder for querying Bin entities.
+type BinQuery struct {
 	config
-	ctx            *QueryContext
-	order          []item.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Item
-	withMovements  *StockMovementQuery
-	withOrderLines *OrderLineQuery
-	withBins       *BinQuery
+	ctx          *QueryContext
+	order        []bin.OrderOption
+	inters       []Interceptor
+	predicates   []predicate.Bin
+	withLocation *LocationQuery
+	withZone     *ZoneQuery
+	withItems    *ItemQuery
+	withFKs      bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the ItemQuery builder.
-func (_q *ItemQuery) Where(ps ...predicate.Item) *ItemQuery {
+// Where adds a new predicate for the BinQuery builder.
+func (_q *BinQuery) Where(ps ...predicate.Bin) *BinQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *ItemQuery) Limit(limit int) *ItemQuery {
+func (_q *BinQuery) Limit(limit int) *BinQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *ItemQuery) Offset(offset int) *ItemQuery {
+func (_q *BinQuery) Offset(offset int) *BinQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *ItemQuery) Unique(unique bool) *ItemQuery {
+func (_q *BinQuery) Unique(unique bool) *BinQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *ItemQuery) Order(o ...item.OrderOption) *ItemQuery {
+func (_q *BinQuery) Order(o ...bin.OrderOption) *BinQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryMovements chains the current query on the "movements" edge.
-func (_q *ItemQuery) QueryMovements() *StockMovementQuery {
-	query := (&StockMovementClient{config: _q.config}).Query()
+// QueryLocation chains the current query on the "location" edge.
+func (_q *BinQuery) QueryLocation() *LocationQuery {
+	query := (&LocationClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -77,9 +78,9 @@ func (_q *ItemQuery) QueryMovements() *StockMovementQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(item.Table, item.FieldID, selector),
-			sqlgraph.To(stockmovement.Table, stockmovement.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, item.MovementsTable, item.MovementsColumn),
+			sqlgraph.From(bin.Table, bin.FieldID, selector),
+			sqlgraph.To(location.Table, location.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, bin.LocationTable, bin.LocationColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -87,9 +88,9 @@ func (_q *ItemQuery) QueryMovements() *StockMovementQuery {
 	return query
 }
 
-// QueryOrderLines chains the current query on the "order_lines" edge.
-func (_q *ItemQuery) QueryOrderLines() *OrderLineQuery {
-	query := (&OrderLineClient{config: _q.config}).Query()
+// QueryZone chains the current query on the "zone" edge.
+func (_q *BinQuery) QueryZone() *ZoneQuery {
+	query := (&ZoneClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -99,9 +100,9 @@ func (_q *ItemQuery) QueryOrderLines() *OrderLineQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(item.Table, item.FieldID, selector),
-			sqlgraph.To(orderline.Table, orderline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, item.OrderLinesTable, item.OrderLinesColumn),
+			sqlgraph.From(bin.Table, bin.FieldID, selector),
+			sqlgraph.To(zone.Table, zone.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, bin.ZoneTable, bin.ZoneColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -109,9 +110,9 @@ func (_q *ItemQuery) QueryOrderLines() *OrderLineQuery {
 	return query
 }
 
-// QueryBins chains the current query on the "bins" edge.
-func (_q *ItemQuery) QueryBins() *BinQuery {
-	query := (&BinClient{config: _q.config}).Query()
+// QueryItems chains the current query on the "items" edge.
+func (_q *BinQuery) QueryItems() *ItemQuery {
+	query := (&ItemClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -121,9 +122,9 @@ func (_q *ItemQuery) QueryBins() *BinQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(item.Table, item.FieldID, selector),
-			sqlgraph.To(bin.Table, bin.FieldID),
-			sqlgraph.Edge(sqlgraph.M2M, true, item.BinsTable, item.BinsPrimaryKey...),
+			sqlgraph.From(bin.Table, bin.FieldID, selector),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, bin.ItemsTable, bin.ItemsPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -131,21 +132,21 @@ func (_q *ItemQuery) QueryBins() *BinQuery {
 	return query
 }
 
-// First returns the first Item entity from the query.
-// Returns a *NotFoundError when no Item was found.
-func (_q *ItemQuery) First(ctx context.Context) (*Item, error) {
+// First returns the first Bin entity from the query.
+// Returns a *NotFoundError when no Bin was found.
+func (_q *BinQuery) First(ctx context.Context) (*Bin, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{item.Label}
+		return nil, &NotFoundError{bin.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *ItemQuery) FirstX(ctx context.Context) *Item {
+func (_q *BinQuery) FirstX(ctx context.Context) *Bin {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -153,22 +154,22 @@ func (_q *ItemQuery) FirstX(ctx context.Context) *Item {
 	return node
 }
 
-// FirstID returns the first Item ID from the query.
-// Returns a *NotFoundError when no Item ID was found.
-func (_q *ItemQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first Bin ID from the query.
+// Returns a *NotFoundError when no Bin ID was found.
+func (_q *BinQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{item.Label}
+		err = &NotFoundError{bin.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *ItemQuery) FirstIDX(ctx context.Context) int {
+func (_q *BinQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -176,10 +177,10 @@ func (_q *ItemQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Item entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Item entity is found.
-// Returns a *NotFoundError when no Item entities are found.
-func (_q *ItemQuery) Only(ctx context.Context) (*Item, error) {
+// Only returns a single Bin entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one Bin entity is found.
+// Returns a *NotFoundError when no Bin entities are found.
+func (_q *BinQuery) Only(ctx context.Context) (*Bin, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -188,14 +189,14 @@ func (_q *ItemQuery) Only(ctx context.Context) (*Item, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{item.Label}
+		return nil, &NotFoundError{bin.Label}
 	default:
-		return nil, &NotSingularError{item.Label}
+		return nil, &NotSingularError{bin.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *ItemQuery) OnlyX(ctx context.Context) *Item {
+func (_q *BinQuery) OnlyX(ctx context.Context) *Bin {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -203,10 +204,10 @@ func (_q *ItemQuery) OnlyX(ctx context.Context) *Item {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Item ID in the query.
-// Returns a *NotSingularError when more than one Item ID is found.
+// OnlyID is like Only, but returns the only Bin ID in the query.
+// Returns a *NotSingularError when more than one Bin ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *ItemQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *BinQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -215,15 +216,15 @@ func (_q *ItemQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{item.Label}
+		err = &NotFoundError{bin.Label}
 	default:
-		err = &NotSingularError{item.Label}
+		err = &NotSingularError{bin.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *ItemQuery) OnlyIDX(ctx context.Context) int {
+func (_q *BinQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -231,18 +232,18 @@ func (_q *ItemQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Items.
-func (_q *ItemQuery) All(ctx context.Context) ([]*Item, error) {
+// All executes the query and returns a list of Bins.
+func (_q *BinQuery) All(ctx context.Context) ([]*Bin, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Item, *ItemQuery]()
-	return withInterceptors[[]*Item](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*Bin, *BinQuery]()
+	return withInterceptors[[]*Bin](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *ItemQuery) AllX(ctx context.Context) []*Item {
+func (_q *BinQuery) AllX(ctx context.Context) []*Bin {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -250,20 +251,20 @@ func (_q *ItemQuery) AllX(ctx context.Context) []*Item {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Item IDs.
-func (_q *ItemQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of Bin IDs.
+func (_q *BinQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(item.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(bin.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *ItemQuery) IDsX(ctx context.Context) []int {
+func (_q *BinQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -272,16 +273,16 @@ func (_q *ItemQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *ItemQuery) Count(ctx context.Context) (int, error) {
+func (_q *BinQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*ItemQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*BinQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *ItemQuery) CountX(ctx context.Context) int {
+func (_q *BinQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -290,7 +291,7 @@ func (_q *ItemQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *ItemQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *BinQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -303,7 +304,7 @@ func (_q *ItemQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *ItemQuery) ExistX(ctx context.Context) bool {
+func (_q *BinQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -311,57 +312,57 @@ func (_q *ItemQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the ItemQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the BinQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *ItemQuery) Clone() *ItemQuery {
+func (_q *BinQuery) Clone() *BinQuery {
 	if _q == nil {
 		return nil
 	}
-	return &ItemQuery{
-		config:         _q.config,
-		ctx:            _q.ctx.Clone(),
-		order:          append([]item.OrderOption{}, _q.order...),
-		inters:         append([]Interceptor{}, _q.inters...),
-		predicates:     append([]predicate.Item{}, _q.predicates...),
-		withMovements:  _q.withMovements.Clone(),
-		withOrderLines: _q.withOrderLines.Clone(),
-		withBins:       _q.withBins.Clone(),
+	return &BinQuery{
+		config:       _q.config,
+		ctx:          _q.ctx.Clone(),
+		order:        append([]bin.OrderOption{}, _q.order...),
+		inters:       append([]Interceptor{}, _q.inters...),
+		predicates:   append([]predicate.Bin{}, _q.predicates...),
+		withLocation: _q.withLocation.Clone(),
+		withZone:     _q.withZone.Clone(),
+		withItems:    _q.withItems.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithMovements tells the query-builder to eager-load the nodes that are connected to
-// the "movements" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ItemQuery) WithMovements(opts ...func(*StockMovementQuery)) *ItemQuery {
-	query := (&StockMovementClient{config: _q.config}).Query()
+// WithLocation tells the query-builder to eager-load the nodes that are connected to
+// the "location" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BinQuery) WithLocation(opts ...func(*LocationQuery)) *BinQuery {
+	query := (&LocationClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withMovements = query
+	_q.withLocation = query
 	return _q
 }
 
-// WithOrderLines tells the query-builder to eager-load the nodes that are connected to
-// the "order_lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ItemQuery) WithOrderLines(opts ...func(*OrderLineQuery)) *ItemQuery {
-	query := (&OrderLineClient{config: _q.config}).Query()
+// WithZone tells the query-builder to eager-load the nodes that are connected to
+// the "zone" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BinQuery) WithZone(opts ...func(*ZoneQuery)) *BinQuery {
+	query := (&ZoneClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withOrderLines = query
+	_q.withZone = query
 	return _q
 }
 
-// WithBins tells the query-builder to eager-load the nodes that are connected to
-// the "bins" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *ItemQuery) WithBins(opts ...func(*BinQuery)) *ItemQuery {
-	query := (&BinClient{config: _q.config}).Query()
+// WithItems tells the query-builder to eager-load the nodes that are connected to
+// the "items" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *BinQuery) WithItems(opts ...func(*ItemQuery)) *BinQuery {
+	query := (&ItemClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withBins = query
+	_q.withItems = query
 	return _q
 }
 
@@ -371,19 +372,19 @@ func (_q *ItemQuery) WithBins(opts ...func(*BinQuery)) *ItemQuery {
 // Example:
 //
 //	var v []struct {
-//		SKU string `json:"SKU,omitempty"`
+//		Code string `json:"code,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Item.Query().
-//		GroupBy(item.FieldSKU).
+//	client.Bin.Query().
+//		GroupBy(bin.FieldCode).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *ItemQuery) GroupBy(field string, fields ...string) *ItemGroupBy {
+func (_q *BinQuery) GroupBy(field string, fields ...string) *BinGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &ItemGroupBy{build: _q}
+	grbuild := &BinGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = item.Label
+	grbuild.label = bin.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -394,26 +395,26 @@ func (_q *ItemQuery) GroupBy(field string, fields ...string) *ItemGroupBy {
 // Example:
 //
 //	var v []struct {
-//		SKU string `json:"SKU,omitempty"`
+//		Code string `json:"code,omitempty"`
 //	}
 //
-//	client.Item.Query().
-//		Select(item.FieldSKU).
+//	client.Bin.Query().
+//		Select(bin.FieldCode).
 //		Scan(ctx, &v)
-func (_q *ItemQuery) Select(fields ...string) *ItemSelect {
+func (_q *BinQuery) Select(fields ...string) *BinSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &ItemSelect{ItemQuery: _q}
-	sbuild.label = item.Label
+	sbuild := &BinSelect{BinQuery: _q}
+	sbuild.label = bin.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a ItemSelect configured with the given aggregations.
-func (_q *ItemQuery) Aggregate(fns ...AggregateFunc) *ItemSelect {
+// Aggregate returns a BinSelect configured with the given aggregations.
+func (_q *BinQuery) Aggregate(fns ...AggregateFunc) *BinSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *ItemQuery) prepareQuery(ctx context.Context) error {
+func (_q *BinQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -425,7 +426,7 @@ func (_q *ItemQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !item.ValidColumn(f) {
+		if !bin.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -439,21 +440,28 @@ func (_q *ItemQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, error) {
+func (_q *BinQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Bin, error) {
 	var (
-		nodes       = []*Item{}
+		nodes       = []*Bin{}
+		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [3]bool{
-			_q.withMovements != nil,
-			_q.withOrderLines != nil,
-			_q.withBins != nil,
+			_q.withLocation != nil,
+			_q.withZone != nil,
+			_q.withItems != nil,
 		}
 	)
+	if _q.withLocation != nil || _q.withZone != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, bin.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Item).scanValues(nil, columns)
+		return (*Bin).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Item{config: _q.config}
+		node := &Bin{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -467,96 +475,96 @@ func (_q *ItemQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Item, e
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withMovements; query != nil {
-		if err := _q.loadMovements(ctx, query, nodes,
-			func(n *Item) { n.Edges.Movements = []*StockMovement{} },
-			func(n *Item, e *StockMovement) { n.Edges.Movements = append(n.Edges.Movements, e) }); err != nil {
+	if query := _q.withLocation; query != nil {
+		if err := _q.loadLocation(ctx, query, nodes, nil,
+			func(n *Bin, e *Location) { n.Edges.Location = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withOrderLines; query != nil {
-		if err := _q.loadOrderLines(ctx, query, nodes,
-			func(n *Item) { n.Edges.OrderLines = []*OrderLine{} },
-			func(n *Item, e *OrderLine) { n.Edges.OrderLines = append(n.Edges.OrderLines, e) }); err != nil {
+	if query := _q.withZone; query != nil {
+		if err := _q.loadZone(ctx, query, nodes, nil,
+			func(n *Bin, e *Zone) { n.Edges.Zone = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withBins; query != nil {
-		if err := _q.loadBins(ctx, query, nodes,
-			func(n *Item) { n.Edges.Bins = []*Bin{} },
-			func(n *Item, e *Bin) { n.Edges.Bins = append(n.Edges.Bins, e) }); err != nil {
+	if query := _q.withItems; query != nil {
+		if err := _q.loadItems(ctx, query, nodes,
+			func(n *Bin) { n.Edges.Items = []*Item{} },
+			func(n *Bin, e *Item) { n.Edges.Items = append(n.Edges.Items, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *ItemQuery) loadMovements(ctx context.Context, query *StockMovementQuery, nodes []*Item, init func(*Item), assign func(*Item, *StockMovement)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Item)
+func (_q *BinQuery) loadLocation(ctx context.Context, query *LocationQuery, nodes []*Bin, init func(*Bin), assign func(*Bin, *Location)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Bin)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].location_bins == nil {
+			continue
 		}
+		fk := *nodes[i].location_bins
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.StockMovement(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(item.MovementsColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(location.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.item_movements
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "item_movements" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "item_movements" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "location_bins" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
-func (_q *ItemQuery) loadOrderLines(ctx context.Context, query *OrderLineQuery, nodes []*Item, init func(*Item), assign func(*Item, *OrderLine)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Item)
+func (_q *BinQuery) loadZone(ctx context.Context, query *ZoneQuery, nodes []*Bin, init func(*Bin), assign func(*Bin, *Zone)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*Bin)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].zone_bins == nil {
+			continue
 		}
+		fk := *nodes[i].zone_bins
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.OrderLine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(item.OrderLinesColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(zone.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.item_order_lines
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "item_order_lines" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "item_order_lines" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "zone_bins" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
-func (_q *ItemQuery) loadBins(ctx context.Context, query *BinQuery, nodes []*Item, init func(*Item), assign func(*Item, *Bin)) error {
+func (_q *BinQuery) loadItems(ctx context.Context, query *ItemQuery, nodes []*Bin, init func(*Bin), assign func(*Bin, *Item)) error {
 	edgeIDs := make([]driver.Value, len(nodes))
-	byID := make(map[int]*Item)
-	nids := make(map[int]map[*Item]struct{})
+	byID := make(map[int]*Bin)
+	nids := make(map[int]map[*Bin]struct{})
 	for i, node := range nodes {
 		edgeIDs[i] = node.ID
 		byID[node.ID] = node
@@ -565,11 +573,11 @@ func (_q *ItemQuery) loadBins(ctx context.Context, query *BinQuery, nodes []*Ite
 		}
 	}
 	query.Where(func(s *sql.Selector) {
-		joinT := sql.Table(item.BinsTable)
-		s.Join(joinT).On(s.C(bin.FieldID), joinT.C(item.BinsPrimaryKey[0]))
-		s.Where(sql.InValues(joinT.C(item.BinsPrimaryKey[1]), edgeIDs...))
+		joinT := sql.Table(bin.ItemsTable)
+		s.Join(joinT).On(s.C(item.FieldID), joinT.C(bin.ItemsPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(bin.ItemsPrimaryKey[0]), edgeIDs...))
 		columns := s.SelectedColumns()
-		s.Select(joinT.C(item.BinsPrimaryKey[1]))
+		s.Select(joinT.C(bin.ItemsPrimaryKey[0]))
 		s.AppendSelect(columns...)
 		s.SetDistinct(false)
 	})
@@ -591,7 +599,7 @@ func (_q *ItemQuery) loadBins(ctx context.Context, query *BinQuery, nodes []*Ite
 				outValue := int(values[0].(*sql.NullInt64).Int64)
 				inValue := int(values[1].(*sql.NullInt64).Int64)
 				if nids[inValue] == nil {
-					nids[inValue] = map[*Item]struct{}{byID[outValue]: {}}
+					nids[inValue] = map[*Bin]struct{}{byID[outValue]: {}}
 					return assign(columns[1:], values[1:])
 				}
 				nids[inValue][byID[outValue]] = struct{}{}
@@ -599,14 +607,14 @@ func (_q *ItemQuery) loadBins(ctx context.Context, query *BinQuery, nodes []*Ite
 			}
 		})
 	})
-	neighbors, err := withInterceptors[[]*Bin](ctx, query, qr, query.inters)
+	neighbors, err := withInterceptors[[]*Item](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
 		nodes, ok := nids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected "bins" node returned %v`, n.ID)
+			return fmt.Errorf(`unexpected "items" node returned %v`, n.ID)
 		}
 		for kn := range nodes {
 			assign(kn, n)
@@ -615,7 +623,7 @@ func (_q *ItemQuery) loadBins(ctx context.Context, query *BinQuery, nodes []*Ite
 	return nil
 }
 
-func (_q *ItemQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *BinQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -624,8 +632,8 @@ func (_q *ItemQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *ItemQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(item.Table, item.Columns, sqlgraph.NewFieldSpec(item.FieldID, field.TypeInt))
+func (_q *BinQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(bin.Table, bin.Columns, sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -634,9 +642,9 @@ func (_q *ItemQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, item.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, bin.FieldID)
 		for i := range fields {
-			if fields[i] != item.FieldID {
+			if fields[i] != bin.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -664,12 +672,12 @@ func (_q *ItemQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *ItemQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *BinQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(item.Table)
+	t1 := builder.Table(bin.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = item.Columns
+		columns = bin.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -696,28 +704,28 @@ func (_q *ItemQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// ItemGroupBy is the group-by builder for Item entities.
-type ItemGroupBy struct {
+// BinGroupBy is the group-by builder for Bin entities.
+type BinGroupBy struct {
 	selector
-	build *ItemQuery
+	build *BinQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *ItemGroupBy) Aggregate(fns ...AggregateFunc) *ItemGroupBy {
+func (_g *BinGroupBy) Aggregate(fns ...AggregateFunc) *BinGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *ItemGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *BinGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ItemQuery, *ItemGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*BinQuery, *BinGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *ItemGroupBy) sqlScan(ctx context.Context, root *ItemQuery, v any) error {
+func (_g *BinGroupBy) sqlScan(ctx context.Context, root *BinQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -744,28 +752,28 @@ func (_g *ItemGroupBy) sqlScan(ctx context.Context, root *ItemQuery, v any) erro
 	return sql.ScanSlice(rows, v)
 }
 
-// ItemSelect is the builder for selecting fields of Item entities.
-type ItemSelect struct {
-	*ItemQuery
+// BinSelect is the builder for selecting fields of Bin entities.
+type BinSelect struct {
+	*BinQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *ItemSelect) Aggregate(fns ...AggregateFunc) *ItemSelect {
+func (_s *BinSelect) Aggregate(fns ...AggregateFunc) *BinSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *ItemSelect) Scan(ctx context.Context, v any) error {
+func (_s *BinSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*ItemQuery, *ItemSelect](ctx, _s.ItemQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*BinQuery, *BinSelect](ctx, _s.BinQuery, _s, _s.inters, v)
 }
 
-func (_s *ItemSelect) sqlScan(ctx context.Context, root *ItemQuery, v any) error {
+func (_s *BinSelect) sqlScan(ctx context.Context, root *BinQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

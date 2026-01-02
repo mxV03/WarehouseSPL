@@ -162,7 +162,11 @@ func (s *StockService) StockAtLocation(ctx context.Context, sku, locCode string)
 		Int(ctx)
 
 	if err != nil {
-		return 0, fmt.Errorf("aggregating OUT stock: %w", err)
+		if strings.Contains(err.Error(), "converting NULL to int") {
+			outs = 0
+		} else {
+			return 0, fmt.Errorf("aggregating OUT stock: %w", err)
+		}
 	}
 
 	return ins - outs, nil
@@ -192,7 +196,11 @@ func (s *StockService) StockBySKU(ctx context.Context, sku string) (int, error) 
 		Aggregate(ent.Sum(stockmovement.FieldQuantity)).
 		Int(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("aggregating OUT stock: %w", err)
+		if strings.Contains(err.Error(), "converting NULL to int") {
+			outs = 0
+		} else {
+			return 0, fmt.Errorf("aggregating OUT stock: %w", err)
+		}
 	}
 
 	return ins - outs, nil

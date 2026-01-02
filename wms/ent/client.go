@@ -15,11 +15,13 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/zone"
 )
 
 // Client is the client that holds all ent builders.
@@ -27,6 +29,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// Bin is the client for interacting with the Bin builders.
+	Bin *BinClient
 	// Item is the client for interacting with the Item builders.
 	Item *ItemClient
 	// Location is the client for interacting with the Location builders.
@@ -37,6 +41,8 @@ type Client struct {
 	OrderLine *OrderLineClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
+	// Zone is the client for interacting with the Zone builders.
+	Zone *ZoneClient
 }
 
 // NewClient creates a new client configured with the given options.
@@ -48,11 +54,13 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.Bin = NewBinClient(c.config)
 	c.Item = NewItemClient(c.config)
 	c.Location = NewLocationClient(c.config)
 	c.Order = NewOrderClient(c.config)
 	c.OrderLine = NewOrderLineClient(c.config)
 	c.StockMovement = NewStockMovementClient(c.config)
+	c.Zone = NewZoneClient(c.config)
 }
 
 type (
@@ -145,11 +153,13 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:           ctx,
 		config:        cfg,
+		Bin:           NewBinClient(cfg),
 		Item:          NewItemClient(cfg),
 		Location:      NewLocationClient(cfg),
 		Order:         NewOrderClient(cfg),
 		OrderLine:     NewOrderLineClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
+		Zone:          NewZoneClient(cfg),
 	}, nil
 }
 
@@ -169,18 +179,20 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:           ctx,
 		config:        cfg,
+		Bin:           NewBinClient(cfg),
 		Item:          NewItemClient(cfg),
 		Location:      NewLocationClient(cfg),
 		Order:         NewOrderClient(cfg),
 		OrderLine:     NewOrderLineClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
+		Zone:          NewZoneClient(cfg),
 	}, nil
 }
 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Item.
+//		Bin.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -202,26 +214,28 @@ func (c *Client) Close() error {
 // Use adds the mutation hooks to all the entity clients.
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
-	c.Item.Use(hooks...)
-	c.Location.Use(hooks...)
-	c.Order.Use(hooks...)
-	c.OrderLine.Use(hooks...)
-	c.StockMovement.Use(hooks...)
+	for _, n := range []interface{ Use(...Hook) }{
+		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.StockMovement, c.Zone,
+	} {
+		n.Use(hooks...)
+	}
 }
 
 // Intercept adds the query interceptors to all the entity clients.
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
-	c.Item.Intercept(interceptors...)
-	c.Location.Intercept(interceptors...)
-	c.Order.Intercept(interceptors...)
-	c.OrderLine.Intercept(interceptors...)
-	c.StockMovement.Intercept(interceptors...)
+	for _, n := range []interface{ Intercept(...Interceptor) }{
+		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.StockMovement, c.Zone,
+	} {
+		n.Intercept(interceptors...)
+	}
 }
 
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *BinMutation:
+		return c.Bin.mutate(ctx, m)
 	case *ItemMutation:
 		return c.Item.mutate(ctx, m)
 	case *LocationMutation:
@@ -232,8 +246,191 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.OrderLine.mutate(ctx, m)
 	case *StockMovementMutation:
 		return c.StockMovement.mutate(ctx, m)
+	case *ZoneMutation:
+		return c.Zone.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// BinClient is a client for the Bin schema.
+type BinClient struct {
+	config
+}
+
+// NewBinClient returns a client for the Bin from the given config.
+func NewBinClient(c config) *BinClient {
+	return &BinClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `bin.Hooks(f(g(h())))`.
+func (c *BinClient) Use(hooks ...Hook) {
+	c.hooks.Bin = append(c.hooks.Bin, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `bin.Intercept(f(g(h())))`.
+func (c *BinClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Bin = append(c.inters.Bin, interceptors...)
+}
+
+// Create returns a builder for creating a Bin entity.
+func (c *BinClient) Create() *BinCreate {
+	mutation := newBinMutation(c.config, OpCreate)
+	return &BinCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Bin entities.
+func (c *BinClient) CreateBulk(builders ...*BinCreate) *BinCreateBulk {
+	return &BinCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *BinClient) MapCreateBulk(slice any, setFunc func(*BinCreate, int)) *BinCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &BinCreateBulk{err: fmt.Errorf("calling to BinClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*BinCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &BinCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Bin.
+func (c *BinClient) Update() *BinUpdate {
+	mutation := newBinMutation(c.config, OpUpdate)
+	return &BinUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *BinClient) UpdateOne(_m *Bin) *BinUpdateOne {
+	mutation := newBinMutation(c.config, OpUpdateOne, withBin(_m))
+	return &BinUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *BinClient) UpdateOneID(id int) *BinUpdateOne {
+	mutation := newBinMutation(c.config, OpUpdateOne, withBinID(id))
+	return &BinUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Bin.
+func (c *BinClient) Delete() *BinDelete {
+	mutation := newBinMutation(c.config, OpDelete)
+	return &BinDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *BinClient) DeleteOne(_m *Bin) *BinDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *BinClient) DeleteOneID(id int) *BinDeleteOne {
+	builder := c.Delete().Where(bin.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &BinDeleteOne{builder}
+}
+
+// Query returns a query builder for Bin.
+func (c *BinClient) Query() *BinQuery {
+	return &BinQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeBin},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Bin entity by its id.
+func (c *BinClient) Get(ctx context.Context, id int) (*Bin, error) {
+	return c.Query().Where(bin.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *BinClient) GetX(ctx context.Context, id int) *Bin {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLocation queries the location edge of a Bin.
+func (c *BinClient) QueryLocation(_m *Bin) *LocationQuery {
+	query := (&LocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(bin.Table, bin.FieldID, id),
+			sqlgraph.To(location.Table, location.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, bin.LocationTable, bin.LocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryZone queries the zone edge of a Bin.
+func (c *BinClient) QueryZone(_m *Bin) *ZoneQuery {
+	query := (&ZoneClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(bin.Table, bin.FieldID, id),
+			sqlgraph.To(zone.Table, zone.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, bin.ZoneTable, bin.ZoneColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryItems queries the items edge of a Bin.
+func (c *BinClient) QueryItems(_m *Bin) *ItemQuery {
+	query := (&ItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(bin.Table, bin.FieldID, id),
+			sqlgraph.To(item.Table, item.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, bin.ItemsTable, bin.ItemsPrimaryKey...),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *BinClient) Hooks() []Hook {
+	return c.hooks.Bin
+}
+
+// Interceptors returns the client interceptors.
+func (c *BinClient) Interceptors() []Interceptor {
+	return c.inters.Bin
+}
+
+func (c *BinClient) mutate(ctx context.Context, m *BinMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&BinCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&BinUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&BinUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&BinDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Bin mutation op: %q", m.Op())
 	}
 }
 
@@ -370,6 +567,22 @@ func (c *ItemClient) QueryOrderLines(_m *Item) *OrderLineQuery {
 			sqlgraph.From(item.Table, item.FieldID, id),
 			sqlgraph.To(orderline.Table, orderline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, item.OrderLinesTable, item.OrderLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBins queries the bins edge of a Item.
+func (c *ItemClient) QueryBins(_m *Item) *BinQuery {
+	query := (&BinClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(item.Table, item.FieldID, id),
+			sqlgraph.To(bin.Table, bin.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, item.BinsTable, item.BinsPrimaryKey...),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -535,6 +748,38 @@ func (c *LocationClient) QueryOrderLines(_m *Location) *OrderLineQuery {
 			sqlgraph.From(location.Table, location.FieldID, id),
 			sqlgraph.To(orderline.Table, orderline.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, location.OrderLinesTable, location.OrderLinesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryZones queries the zones edge of a Location.
+func (c *LocationClient) QueryZones(_m *Location) *ZoneQuery {
+	query := (&ZoneClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, id),
+			sqlgraph.To(zone.Table, zone.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, location.ZonesTable, location.ZonesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBins queries the bins edge of a Location.
+func (c *LocationClient) QueryBins(_m *Location) *BinQuery {
+	query := (&BinClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, id),
+			sqlgraph.To(bin.Table, bin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, location.BinsTable, location.BinsColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1062,12 +1307,177 @@ func (c *StockMovementClient) mutate(ctx context.Context, m *StockMovementMutati
 	}
 }
 
+// ZoneClient is a client for the Zone schema.
+type ZoneClient struct {
+	config
+}
+
+// NewZoneClient returns a client for the Zone from the given config.
+func NewZoneClient(c config) *ZoneClient {
+	return &ZoneClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `zone.Hooks(f(g(h())))`.
+func (c *ZoneClient) Use(hooks ...Hook) {
+	c.hooks.Zone = append(c.hooks.Zone, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `zone.Intercept(f(g(h())))`.
+func (c *ZoneClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Zone = append(c.inters.Zone, interceptors...)
+}
+
+// Create returns a builder for creating a Zone entity.
+func (c *ZoneClient) Create() *ZoneCreate {
+	mutation := newZoneMutation(c.config, OpCreate)
+	return &ZoneCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Zone entities.
+func (c *ZoneClient) CreateBulk(builders ...*ZoneCreate) *ZoneCreateBulk {
+	return &ZoneCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *ZoneClient) MapCreateBulk(slice any, setFunc func(*ZoneCreate, int)) *ZoneCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &ZoneCreateBulk{err: fmt.Errorf("calling to ZoneClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*ZoneCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &ZoneCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Zone.
+func (c *ZoneClient) Update() *ZoneUpdate {
+	mutation := newZoneMutation(c.config, OpUpdate)
+	return &ZoneUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *ZoneClient) UpdateOne(_m *Zone) *ZoneUpdateOne {
+	mutation := newZoneMutation(c.config, OpUpdateOne, withZone(_m))
+	return &ZoneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *ZoneClient) UpdateOneID(id int) *ZoneUpdateOne {
+	mutation := newZoneMutation(c.config, OpUpdateOne, withZoneID(id))
+	return &ZoneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Zone.
+func (c *ZoneClient) Delete() *ZoneDelete {
+	mutation := newZoneMutation(c.config, OpDelete)
+	return &ZoneDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *ZoneClient) DeleteOne(_m *Zone) *ZoneDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *ZoneClient) DeleteOneID(id int) *ZoneDeleteOne {
+	builder := c.Delete().Where(zone.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &ZoneDeleteOne{builder}
+}
+
+// Query returns a query builder for Zone.
+func (c *ZoneClient) Query() *ZoneQuery {
+	return &ZoneQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeZone},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Zone entity by its id.
+func (c *ZoneClient) Get(ctx context.Context, id int) (*Zone, error) {
+	return c.Query().Where(zone.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *ZoneClient) GetX(ctx context.Context, id int) *Zone {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryLocation queries the location edge of a Zone.
+func (c *ZoneClient) QueryLocation(_m *Zone) *LocationQuery {
+	query := (&LocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(zone.Table, zone.FieldID, id),
+			sqlgraph.To(location.Table, location.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, zone.LocationTable, zone.LocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryBins queries the bins edge of a Zone.
+func (c *ZoneClient) QueryBins(_m *Zone) *BinQuery {
+	query := (&BinClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(zone.Table, zone.FieldID, id),
+			sqlgraph.To(bin.Table, bin.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, zone.BinsTable, zone.BinsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *ZoneClient) Hooks() []Hook {
+	return c.hooks.Zone
+}
+
+// Interceptors returns the client interceptors.
+func (c *ZoneClient) Interceptors() []Interceptor {
+	return c.inters.Zone
+}
+
+func (c *ZoneClient) mutate(ctx context.Context, m *ZoneMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&ZoneCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&ZoneUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&ZoneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&ZoneDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Zone mutation op: %q", m.Op())
+	}
+}
+
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Item, Location, Order, OrderLine, StockMovement []ent.Hook
+		Bin, Item, Location, Order, OrderLine, StockMovement, Zone []ent.Hook
 	}
 	inters struct {
-		Item, Location, Order, OrderLine, StockMovement []ent.Interceptor
+		Bin, Item, Location, Order, OrderLine, StockMovement, Zone []ent.Interceptor
 	}
 )

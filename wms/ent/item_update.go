@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/predicate"
@@ -107,6 +108,21 @@ func (_u *ItemUpdate) AddOrderLines(v ...*OrderLine) *ItemUpdate {
 	return _u.AddOrderLineIDs(ids...)
 }
 
+// AddBinIDs adds the "bins" edge to the Bin entity by IDs.
+func (_u *ItemUpdate) AddBinIDs(ids ...int) *ItemUpdate {
+	_u.mutation.AddBinIDs(ids...)
+	return _u
+}
+
+// AddBins adds the "bins" edges to the Bin entity.
+func (_u *ItemUpdate) AddBins(v ...*Bin) *ItemUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBinIDs(ids...)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (_u *ItemUpdate) Mutation() *ItemMutation {
 	return _u.mutation
@@ -152,6 +168,27 @@ func (_u *ItemUpdate) RemoveOrderLines(v ...*OrderLine) *ItemUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveOrderLineIDs(ids...)
+}
+
+// ClearBins clears all "bins" edges to the Bin entity.
+func (_u *ItemUpdate) ClearBins() *ItemUpdate {
+	_u.mutation.ClearBins()
+	return _u
+}
+
+// RemoveBinIDs removes the "bins" edge to Bin entities by IDs.
+func (_u *ItemUpdate) RemoveBinIDs(ids ...int) *ItemUpdate {
+	_u.mutation.RemoveBinIDs(ids...)
+	return _u
+}
+
+// RemoveBins removes "bins" edges to Bin entities.
+func (_u *ItemUpdate) RemoveBins(v ...*Bin) *ItemUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBinIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -310,6 +347,51 @@ func (_u *ItemUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBinsIDs(); len(nodes) > 0 && !_u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{item.Label}
@@ -408,6 +490,21 @@ func (_u *ItemUpdateOne) AddOrderLines(v ...*OrderLine) *ItemUpdateOne {
 	return _u.AddOrderLineIDs(ids...)
 }
 
+// AddBinIDs adds the "bins" edge to the Bin entity by IDs.
+func (_u *ItemUpdateOne) AddBinIDs(ids ...int) *ItemUpdateOne {
+	_u.mutation.AddBinIDs(ids...)
+	return _u
+}
+
+// AddBins adds the "bins" edges to the Bin entity.
+func (_u *ItemUpdateOne) AddBins(v ...*Bin) *ItemUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddBinIDs(ids...)
+}
+
 // Mutation returns the ItemMutation object of the builder.
 func (_u *ItemUpdateOne) Mutation() *ItemMutation {
 	return _u.mutation
@@ -453,6 +550,27 @@ func (_u *ItemUpdateOne) RemoveOrderLines(v ...*OrderLine) *ItemUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveOrderLineIDs(ids...)
+}
+
+// ClearBins clears all "bins" edges to the Bin entity.
+func (_u *ItemUpdateOne) ClearBins() *ItemUpdateOne {
+	_u.mutation.ClearBins()
+	return _u
+}
+
+// RemoveBinIDs removes the "bins" edge to Bin entities by IDs.
+func (_u *ItemUpdateOne) RemoveBinIDs(ids ...int) *ItemUpdateOne {
+	_u.mutation.RemoveBinIDs(ids...)
+	return _u
+}
+
+// RemoveBins removes "bins" edges to Bin entities.
+func (_u *ItemUpdateOne) RemoveBins(v ...*Bin) *ItemUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveBinIDs(ids...)
 }
 
 // Where appends a list predicates to the ItemUpdate builder.
@@ -634,6 +752,51 @@ func (_u *ItemUpdateOne) sqlSave(ctx context.Context) (_node *Item, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedBinsIDs(); len(nodes) > 0 && !_u.mutation.BinsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.BinsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
+			Table:   item.BinsTable,
+			Columns: item.BinsPrimaryKey,
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

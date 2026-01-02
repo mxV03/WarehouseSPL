@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Bin is the predicate function for bin builders.
+type Bin func(*sql.Selector)
+
 // Item is the predicate function for item builders.
 type Item func(*sql.Selector)
 
@@ -20,3 +23,6 @@ type OrderLine func(*sql.Selector)
 
 // StockMovement is the predicate function for stockmovement builders.
 type StockMovement func(*sql.Selector)
+
+// Zone is the predicate function for zone builders.
+type Zone func(*sql.Selector)

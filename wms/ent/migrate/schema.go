@@ -8,6 +8,41 @@ import (
 )
 
 var (
+	// BinsColumns holds the columns for the "bins" table.
+	BinsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "location_bins", Type: field.TypeInt},
+		{Name: "zone_bins", Type: field.TypeInt},
+	}
+	// BinsTable holds the schema information for the "bins" table.
+	BinsTable = &schema.Table{
+		Name:       "bins",
+		Columns:    BinsColumns,
+		PrimaryKey: []*schema.Column{BinsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "bins_locations_bins",
+				Columns:    []*schema.Column{BinsColumns[3]},
+				RefColumns: []*schema.Column{LocationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "bins_zones_bins",
+				Columns:    []*schema.Column{BinsColumns[4]},
+				RefColumns: []*schema.Column{ZonesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "bin_code_location_bins",
+				Unique:  true,
+				Columns: []*schema.Column{BinsColumns[1], BinsColumns[3]},
+			},
+		},
+	}
 	// ItemsColumns holds the columns for the "items" table.
 	ItemsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -111,20 +146,81 @@ var (
 			},
 		},
 	}
+	// ZonesColumns holds the columns for the "zones" table.
+	ZonesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString, Nullable: true},
+		{Name: "location_zones", Type: field.TypeInt},
+	}
+	// ZonesTable holds the schema information for the "zones" table.
+	ZonesTable = &schema.Table{
+		Name:       "zones",
+		Columns:    ZonesColumns,
+		PrimaryKey: []*schema.Column{ZonesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "zones_locations_zones",
+				Columns:    []*schema.Column{ZonesColumns[3]},
+				RefColumns: []*schema.Column{LocationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "zone_code_location_zones",
+				Unique:  true,
+				Columns: []*schema.Column{ZonesColumns[1], ZonesColumns[3]},
+			},
+		},
+	}
+	// BinItemsColumns holds the columns for the "bin_items" table.
+	BinItemsColumns = []*schema.Column{
+		{Name: "bin_id", Type: field.TypeInt},
+		{Name: "item_id", Type: field.TypeInt},
+	}
+	// BinItemsTable holds the schema information for the "bin_items" table.
+	BinItemsTable = &schema.Table{
+		Name:       "bin_items",
+		Columns:    BinItemsColumns,
+		PrimaryKey: []*schema.Column{BinItemsColumns[0], BinItemsColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "bin_items_bin_id",
+				Columns:    []*schema.Column{BinItemsColumns[0]},
+				RefColumns: []*schema.Column{BinsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "bin_items_item_id",
+				Columns:    []*schema.Column{BinItemsColumns[1]},
+				RefColumns: []*schema.Column{ItemsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		BinsTable,
 		ItemsTable,
 		LocationsTable,
 		OrdersTable,
 		OrderLinesTable,
 		StockMovementsTable,
+		ZonesTable,
+		BinItemsTable,
 	}
 )
 
 func init() {
+	BinsTable.ForeignKeys[0].RefTable = LocationsTable
+	BinsTable.ForeignKeys[1].RefTable = ZonesTable
 	OrderLinesTable.ForeignKeys[0].RefTable = ItemsTable
 	OrderLinesTable.ForeignKeys[1].RefTable = LocationsTable
 	OrderLinesTable.ForeignKeys[2].RefTable = OrdersTable
 	StockMovementsTable.ForeignKeys[0].RefTable = ItemsTable
 	StockMovementsTable.ForeignKeys[1].RefTable = LocationsTable
+	ZonesTable.ForeignKeys[0].RefTable = LocationsTable
+	BinItemsTable.ForeignKeys[0].RefTable = BinsTable
+	BinItemsTable.ForeignKeys[1].RefTable = ItemsTable
 }

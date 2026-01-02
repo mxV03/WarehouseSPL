@@ -34,9 +34,11 @@ type ItemEdges struct {
 	Movements []*StockMovement `json:"movements,omitempty"`
 	// OrderLines holds the value of the order_lines edge.
 	OrderLines []*OrderLine `json:"order_lines,omitempty"`
+	// Bins holds the value of the bins edge.
+	Bins []*Bin `json:"bins,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // MovementsOrErr returns the Movements value or an error if the edge
@@ -55,6 +57,15 @@ func (e ItemEdges) OrderLinesOrErr() ([]*OrderLine, error) {
 		return e.OrderLines, nil
 	}
 	return nil, &NotLoadedError{edge: "order_lines"}
+}
+
+// BinsOrErr returns the Bins value or an error if the edge
+// was not loaded in eager-loading.
+func (e ItemEdges) BinsOrErr() ([]*Bin, error) {
+	if e.loadedTypes[2] {
+		return e.Bins, nil
+	}
+	return nil, &NotLoadedError{edge: "bins"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -126,6 +137,11 @@ func (_m *Item) QueryMovements() *StockMovementQuery {
 // QueryOrderLines queries the "order_lines" edge of the Item entity.
 func (_m *Item) QueryOrderLines() *OrderLineQuery {
 	return NewItemClient(_m.config).QueryOrderLines(_m)
+}
+
+// QueryBins queries the "bins" edge of the Item entity.
+func (_m *Item) QueryBins() *BinQuery {
+	return NewItemClient(_m.config).QueryBins(_m)
 }
 
 // Update returns a builder for updating this Item.
