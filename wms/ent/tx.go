@@ -22,6 +22,10 @@ type Tx struct {
 	Order *OrderClient
 	// OrderLine is the client for interacting with the OrderLine builders.
 	OrderLine *OrderLineClient
+	// PickList is the client for interacting with the PickList builders.
+	PickList *PickListClient
+	// PickTask is the client for interacting with the PickTask builders.
+	PickTask *PickTaskClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
 	// Zone is the client for interacting with the Zone builders.
@@ -162,6 +166,8 @@ func (tx *Tx) init() {
 	tx.Location = NewLocationClient(tx.config)
 	tx.Order = NewOrderClient(tx.config)
 	tx.OrderLine = NewOrderLineClient(tx.config)
+	tx.PickList = NewPickListClient(tx.config)
+	tx.PickTask = NewPickTaskClient(tx.config)
 	tx.StockMovement = NewStockMovementClient(tx.config)
 	tx.Zone = NewZoneClient(tx.config)
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picktask"
 )
 
 // OrderLineCreate is the builder for creating a OrderLine entity.
@@ -59,6 +60,21 @@ func (_c *OrderLineCreate) SetLocationID(id int) *OrderLineCreate {
 // SetLocation sets the "location" edge to the Location entity.
 func (_c *OrderLineCreate) SetLocation(v *Location) *OrderLineCreate {
 	return _c.SetLocationID(v.ID)
+}
+
+// AddPickTaskIDs adds the "pick_tasks" edge to the PickTask entity by IDs.
+func (_c *OrderLineCreate) AddPickTaskIDs(ids ...int) *OrderLineCreate {
+	_c.mutation.AddPickTaskIDs(ids...)
+	return _c
+}
+
+// AddPickTasks adds the "pick_tasks" edges to the PickTask entity.
+func (_c *OrderLineCreate) AddPickTasks(v ...*PickTask) *OrderLineCreate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPickTaskIDs(ids...)
 }
 
 // Mutation returns the OrderLineMutation object of the builder.
@@ -191,6 +207,22 @@ func (_c *OrderLineCreate) createSpec() (*OrderLine, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.location_order_lines = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PickTasksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec

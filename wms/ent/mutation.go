@@ -16,6 +16,8 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picklist"
+	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/zone"
@@ -35,6 +37,8 @@ const (
 	TypeLocation      = "Location"
 	TypeOrder         = "Order"
 	TypeOrderLine     = "OrderLine"
+	TypePickList      = "PickList"
+	TypePickTask      = "PickTask"
 	TypeStockMovement = "StockMovement"
 	TypeZone          = "Zone"
 )
@@ -2092,20 +2096,22 @@ func (m *LocationMutation) ResetEdge(name string) error {
 // OrderMutation represents an operation that mutates the Order nodes in the graph.
 type OrderMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int
-	order_number  *string
-	_type         *string
-	status        *string
-	created_at    *time.Time
-	clearedFields map[string]struct{}
-	lines         map[int]struct{}
-	removedlines  map[int]struct{}
-	clearedlines  bool
-	done          bool
-	oldValue      func(context.Context) (*Order, error)
-	predicates    []predicate.Order
+	op              Op
+	typ             string
+	id              *int
+	order_number    *string
+	_type           *string
+	status          *string
+	created_at      *time.Time
+	clearedFields   map[string]struct{}
+	lines           map[int]struct{}
+	removedlines    map[int]struct{}
+	clearedlines    bool
+	picklist        *int
+	clearedpicklist bool
+	done            bool
+	oldValue        func(context.Context) (*Order, error)
+	predicates      []predicate.Order
 }
 
 var _ ent.Mutation = (*OrderMutation)(nil)
@@ -2404,6 +2410,45 @@ func (m *OrderMutation) ResetLines() {
 	m.removedlines = nil
 }
 
+// SetPicklistID sets the "picklist" edge to the PickList entity by id.
+func (m *OrderMutation) SetPicklistID(id int) {
+	m.picklist = &id
+}
+
+// ClearPicklist clears the "picklist" edge to the PickList entity.
+func (m *OrderMutation) ClearPicklist() {
+	m.clearedpicklist = true
+}
+
+// PicklistCleared reports if the "picklist" edge to the PickList entity was cleared.
+func (m *OrderMutation) PicklistCleared() bool {
+	return m.clearedpicklist
+}
+
+// PicklistID returns the "picklist" edge ID in the mutation.
+func (m *OrderMutation) PicklistID() (id int, exists bool) {
+	if m.picklist != nil {
+		return *m.picklist, true
+	}
+	return
+}
+
+// PicklistIDs returns the "picklist" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PicklistID instead. It exists only for internal usage by the builders.
+func (m *OrderMutation) PicklistIDs() (ids []int) {
+	if id := m.picklist; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPicklist resets all changes to the "picklist" edge.
+func (m *OrderMutation) ResetPicklist() {
+	m.picklist = nil
+	m.clearedpicklist = false
+}
+
 // Where appends a list predicates to the OrderMutation builder.
 func (m *OrderMutation) Where(ps ...predicate.Order) {
 	m.predicates = append(m.predicates, ps...)
@@ -2588,9 +2633,12 @@ func (m *OrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *OrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.lines != nil {
 		edges = append(edges, order.EdgeLines)
+	}
+	if m.picklist != nil {
+		edges = append(edges, order.EdgePicklist)
 	}
 	return edges
 }
@@ -2605,13 +2653,17 @@ func (m *OrderMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case order.EdgePicklist:
+		if id := m.picklist; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *OrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.removedlines != nil {
 		edges = append(edges, order.EdgeLines)
 	}
@@ -2634,9 +2686,12 @@ func (m *OrderMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *OrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 1)
+	edges := make([]string, 0, 2)
 	if m.clearedlines {
 		edges = append(edges, order.EdgeLines)
+	}
+	if m.clearedpicklist {
+		edges = append(edges, order.EdgePicklist)
 	}
 	return edges
 }
@@ -2647,6 +2702,8 @@ func (m *OrderMutation) EdgeCleared(name string) bool {
 	switch name {
 	case order.EdgeLines:
 		return m.clearedlines
+	case order.EdgePicklist:
+		return m.clearedpicklist
 	}
 	return false
 }
@@ -2655,6 +2712,9 @@ func (m *OrderMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *OrderMutation) ClearEdge(name string) error {
 	switch name {
+	case order.EdgePicklist:
+		m.ClearPicklist()
+		return nil
 	}
 	return fmt.Errorf("unknown Order unique edge %s", name)
 }
@@ -2666,6 +2726,9 @@ func (m *OrderMutation) ResetEdge(name string) error {
 	case order.EdgeLines:
 		m.ResetLines()
 		return nil
+	case order.EdgePicklist:
+		m.ResetPicklist()
+		return nil
 	}
 	return fmt.Errorf("unknown Order edge %s", name)
 }
@@ -2673,21 +2736,24 @@ func (m *OrderMutation) ResetEdge(name string) error {
 // OrderLineMutation represents an operation that mutates the OrderLine nodes in the graph.
 type OrderLineMutation struct {
 	config
-	op              Op
-	typ             string
-	id              *int
-	quantity        *int
-	addquantity     *int
-	clearedFields   map[string]struct{}
-	_order          *int
-	cleared_order   bool
-	item            *int
-	cleareditem     bool
-	location        *int
-	clearedlocation bool
-	done            bool
-	oldValue        func(context.Context) (*OrderLine, error)
-	predicates      []predicate.OrderLine
+	op                Op
+	typ               string
+	id                *int
+	quantity          *int
+	addquantity       *int
+	clearedFields     map[string]struct{}
+	_order            *int
+	cleared_order     bool
+	item              *int
+	cleareditem       bool
+	location          *int
+	clearedlocation   bool
+	pick_tasks        map[int]struct{}
+	removedpick_tasks map[int]struct{}
+	clearedpick_tasks bool
+	done              bool
+	oldValue          func(context.Context) (*OrderLine, error)
+	predicates        []predicate.OrderLine
 }
 
 var _ ent.Mutation = (*OrderLineMutation)(nil)
@@ -2961,6 +3027,60 @@ func (m *OrderLineMutation) ResetLocation() {
 	m.clearedlocation = false
 }
 
+// AddPickTaskIDs adds the "pick_tasks" edge to the PickTask entity by ids.
+func (m *OrderLineMutation) AddPickTaskIDs(ids ...int) {
+	if m.pick_tasks == nil {
+		m.pick_tasks = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.pick_tasks[ids[i]] = struct{}{}
+	}
+}
+
+// ClearPickTasks clears the "pick_tasks" edge to the PickTask entity.
+func (m *OrderLineMutation) ClearPickTasks() {
+	m.clearedpick_tasks = true
+}
+
+// PickTasksCleared reports if the "pick_tasks" edge to the PickTask entity was cleared.
+func (m *OrderLineMutation) PickTasksCleared() bool {
+	return m.clearedpick_tasks
+}
+
+// RemovePickTaskIDs removes the "pick_tasks" edge to the PickTask entity by IDs.
+func (m *OrderLineMutation) RemovePickTaskIDs(ids ...int) {
+	if m.removedpick_tasks == nil {
+		m.removedpick_tasks = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.pick_tasks, ids[i])
+		m.removedpick_tasks[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedPickTasks returns the removed IDs of the "pick_tasks" edge to the PickTask entity.
+func (m *OrderLineMutation) RemovedPickTasksIDs() (ids []int) {
+	for id := range m.removedpick_tasks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// PickTasksIDs returns the "pick_tasks" edge IDs in the mutation.
+func (m *OrderLineMutation) PickTasksIDs() (ids []int) {
+	for id := range m.pick_tasks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetPickTasks resets all changes to the "pick_tasks" edge.
+func (m *OrderLineMutation) ResetPickTasks() {
+	m.pick_tasks = nil
+	m.clearedpick_tasks = false
+	m.removedpick_tasks = nil
+}
+
 // Where appends a list predicates to the OrderLineMutation builder.
 func (m *OrderLineMutation) Where(ps ...predicate.OrderLine) {
 	m.predicates = append(m.predicates, ps...)
@@ -3109,7 +3229,7 @@ func (m *OrderLineMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *OrderLineMutation) AddedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m._order != nil {
 		edges = append(edges, orderline.EdgeOrder)
 	}
@@ -3118,6 +3238,9 @@ func (m *OrderLineMutation) AddedEdges() []string {
 	}
 	if m.location != nil {
 		edges = append(edges, orderline.EdgeLocation)
+	}
+	if m.pick_tasks != nil {
+		edges = append(edges, orderline.EdgePickTasks)
 	}
 	return edges
 }
@@ -3138,25 +3261,42 @@ func (m *OrderLineMutation) AddedIDs(name string) []ent.Value {
 		if id := m.location; id != nil {
 			return []ent.Value{*id}
 		}
+	case orderline.EdgePickTasks:
+		ids := make([]ent.Value, 0, len(m.pick_tasks))
+		for id := range m.pick_tasks {
+			ids = append(ids, id)
+		}
+		return ids
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *OrderLineMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
+	if m.removedpick_tasks != nil {
+		edges = append(edges, orderline.EdgePickTasks)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *OrderLineMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case orderline.EdgePickTasks:
+		ids := make([]ent.Value, 0, len(m.removedpick_tasks))
+		for id := range m.removedpick_tasks {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *OrderLineMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 3)
+	edges := make([]string, 0, 4)
 	if m.cleared_order {
 		edges = append(edges, orderline.EdgeOrder)
 	}
@@ -3165,6 +3305,9 @@ func (m *OrderLineMutation) ClearedEdges() []string {
 	}
 	if m.clearedlocation {
 		edges = append(edges, orderline.EdgeLocation)
+	}
+	if m.clearedpick_tasks {
+		edges = append(edges, orderline.EdgePickTasks)
 	}
 	return edges
 }
@@ -3179,6 +3322,8 @@ func (m *OrderLineMutation) EdgeCleared(name string) bool {
 		return m.cleareditem
 	case orderline.EdgeLocation:
 		return m.clearedlocation
+	case orderline.EdgePickTasks:
+		return m.clearedpick_tasks
 	}
 	return false
 }
@@ -3213,8 +3358,1417 @@ func (m *OrderLineMutation) ResetEdge(name string) error {
 	case orderline.EdgeLocation:
 		m.ResetLocation()
 		return nil
+	case orderline.EdgePickTasks:
+		m.ResetPickTasks()
+		return nil
 	}
 	return fmt.Errorf("unknown OrderLine edge %s", name)
+}
+
+// PickListMutation represents an operation that mutates the PickList nodes in the graph.
+type PickListMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	status        *string
+	created_at    *time.Time
+	started_at    *time.Time
+	done_at       *time.Time
+	clearedFields map[string]struct{}
+	_order        *int
+	cleared_order bool
+	tasks         map[int]struct{}
+	removedtasks  map[int]struct{}
+	clearedtasks  bool
+	done          bool
+	oldValue      func(context.Context) (*PickList, error)
+	predicates    []predicate.PickList
+}
+
+var _ ent.Mutation = (*PickListMutation)(nil)
+
+// picklistOption allows management of the mutation configuration using functional options.
+type picklistOption func(*PickListMutation)
+
+// newPickListMutation creates new mutation for the PickList entity.
+func newPickListMutation(c config, op Op, opts ...picklistOption) *PickListMutation {
+	m := &PickListMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePickList,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPickListID sets the ID field of the mutation.
+func withPickListID(id int) picklistOption {
+	return func(m *PickListMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PickList
+		)
+		m.oldValue = func(ctx context.Context) (*PickList, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PickList.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPickList sets the old PickList of the mutation.
+func withPickList(node *PickList) picklistOption {
+	return func(m *PickListMutation) {
+		m.oldValue = func(context.Context) (*PickList, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PickListMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PickListMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PickListMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PickListMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PickList.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetStatus sets the "status" field.
+func (m *PickListMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *PickListMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the PickList entity.
+// If the PickList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickListMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *PickListMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *PickListMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *PickListMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the PickList entity.
+// If the PickList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickListMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *PickListMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetStartedAt sets the "started_at" field.
+func (m *PickListMutation) SetStartedAt(t time.Time) {
+	m.started_at = &t
+}
+
+// StartedAt returns the value of the "started_at" field in the mutation.
+func (m *PickListMutation) StartedAt() (r time.Time, exists bool) {
+	v := m.started_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStartedAt returns the old "started_at" field's value of the PickList entity.
+// If the PickList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickListMutation) OldStartedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStartedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStartedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStartedAt: %w", err)
+	}
+	return oldValue.StartedAt, nil
+}
+
+// ClearStartedAt clears the value of the "started_at" field.
+func (m *PickListMutation) ClearStartedAt() {
+	m.started_at = nil
+	m.clearedFields[picklist.FieldStartedAt] = struct{}{}
+}
+
+// StartedAtCleared returns if the "started_at" field was cleared in this mutation.
+func (m *PickListMutation) StartedAtCleared() bool {
+	_, ok := m.clearedFields[picklist.FieldStartedAt]
+	return ok
+}
+
+// ResetStartedAt resets all changes to the "started_at" field.
+func (m *PickListMutation) ResetStartedAt() {
+	m.started_at = nil
+	delete(m.clearedFields, picklist.FieldStartedAt)
+}
+
+// SetDoneAt sets the "done_at" field.
+func (m *PickListMutation) SetDoneAt(t time.Time) {
+	m.done_at = &t
+}
+
+// DoneAt returns the value of the "done_at" field in the mutation.
+func (m *PickListMutation) DoneAt() (r time.Time, exists bool) {
+	v := m.done_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDoneAt returns the old "done_at" field's value of the PickList entity.
+// If the PickList object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickListMutation) OldDoneAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDoneAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDoneAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDoneAt: %w", err)
+	}
+	return oldValue.DoneAt, nil
+}
+
+// ClearDoneAt clears the value of the "done_at" field.
+func (m *PickListMutation) ClearDoneAt() {
+	m.done_at = nil
+	m.clearedFields[picklist.FieldDoneAt] = struct{}{}
+}
+
+// DoneAtCleared returns if the "done_at" field was cleared in this mutation.
+func (m *PickListMutation) DoneAtCleared() bool {
+	_, ok := m.clearedFields[picklist.FieldDoneAt]
+	return ok
+}
+
+// ResetDoneAt resets all changes to the "done_at" field.
+func (m *PickListMutation) ResetDoneAt() {
+	m.done_at = nil
+	delete(m.clearedFields, picklist.FieldDoneAt)
+}
+
+// SetOrderID sets the "order" edge to the Order entity by id.
+func (m *PickListMutation) SetOrderID(id int) {
+	m._order = &id
+}
+
+// ClearOrder clears the "order" edge to the Order entity.
+func (m *PickListMutation) ClearOrder() {
+	m.cleared_order = true
+}
+
+// OrderCleared reports if the "order" edge to the Order entity was cleared.
+func (m *PickListMutation) OrderCleared() bool {
+	return m.cleared_order
+}
+
+// OrderID returns the "order" edge ID in the mutation.
+func (m *PickListMutation) OrderID() (id int, exists bool) {
+	if m._order != nil {
+		return *m._order, true
+	}
+	return
+}
+
+// OrderIDs returns the "order" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrderID instead. It exists only for internal usage by the builders.
+func (m *PickListMutation) OrderIDs() (ids []int) {
+	if id := m._order; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrder resets all changes to the "order" edge.
+func (m *PickListMutation) ResetOrder() {
+	m._order = nil
+	m.cleared_order = false
+}
+
+// AddTaskIDs adds the "tasks" edge to the PickTask entity by ids.
+func (m *PickListMutation) AddTaskIDs(ids ...int) {
+	if m.tasks == nil {
+		m.tasks = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.tasks[ids[i]] = struct{}{}
+	}
+}
+
+// ClearTasks clears the "tasks" edge to the PickTask entity.
+func (m *PickListMutation) ClearTasks() {
+	m.clearedtasks = true
+}
+
+// TasksCleared reports if the "tasks" edge to the PickTask entity was cleared.
+func (m *PickListMutation) TasksCleared() bool {
+	return m.clearedtasks
+}
+
+// RemoveTaskIDs removes the "tasks" edge to the PickTask entity by IDs.
+func (m *PickListMutation) RemoveTaskIDs(ids ...int) {
+	if m.removedtasks == nil {
+		m.removedtasks = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.tasks, ids[i])
+		m.removedtasks[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedTasks returns the removed IDs of the "tasks" edge to the PickTask entity.
+func (m *PickListMutation) RemovedTasksIDs() (ids []int) {
+	for id := range m.removedtasks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// TasksIDs returns the "tasks" edge IDs in the mutation.
+func (m *PickListMutation) TasksIDs() (ids []int) {
+	for id := range m.tasks {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetTasks resets all changes to the "tasks" edge.
+func (m *PickListMutation) ResetTasks() {
+	m.tasks = nil
+	m.clearedtasks = false
+	m.removedtasks = nil
+}
+
+// Where appends a list predicates to the PickListMutation builder.
+func (m *PickListMutation) Where(ps ...predicate.PickList) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PickListMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PickListMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PickList, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PickListMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PickListMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PickList).
+func (m *PickListMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PickListMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.status != nil {
+		fields = append(fields, picklist.FieldStatus)
+	}
+	if m.created_at != nil {
+		fields = append(fields, picklist.FieldCreatedAt)
+	}
+	if m.started_at != nil {
+		fields = append(fields, picklist.FieldStartedAt)
+	}
+	if m.done_at != nil {
+		fields = append(fields, picklist.FieldDoneAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PickListMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case picklist.FieldStatus:
+		return m.Status()
+	case picklist.FieldCreatedAt:
+		return m.CreatedAt()
+	case picklist.FieldStartedAt:
+		return m.StartedAt()
+	case picklist.FieldDoneAt:
+		return m.DoneAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PickListMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case picklist.FieldStatus:
+		return m.OldStatus(ctx)
+	case picklist.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case picklist.FieldStartedAt:
+		return m.OldStartedAt(ctx)
+	case picklist.FieldDoneAt:
+		return m.OldDoneAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown PickList field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PickListMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case picklist.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case picklist.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case picklist.FieldStartedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStartedAt(v)
+		return nil
+	case picklist.FieldDoneAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDoneAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PickList field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PickListMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PickListMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PickListMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown PickList numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PickListMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(picklist.FieldStartedAt) {
+		fields = append(fields, picklist.FieldStartedAt)
+	}
+	if m.FieldCleared(picklist.FieldDoneAt) {
+		fields = append(fields, picklist.FieldDoneAt)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PickListMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PickListMutation) ClearField(name string) error {
+	switch name {
+	case picklist.FieldStartedAt:
+		m.ClearStartedAt()
+		return nil
+	case picklist.FieldDoneAt:
+		m.ClearDoneAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PickList nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PickListMutation) ResetField(name string) error {
+	switch name {
+	case picklist.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case picklist.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case picklist.FieldStartedAt:
+		m.ResetStartedAt()
+		return nil
+	case picklist.FieldDoneAt:
+		m.ResetDoneAt()
+		return nil
+	}
+	return fmt.Errorf("unknown PickList field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PickListMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m._order != nil {
+		edges = append(edges, picklist.EdgeOrder)
+	}
+	if m.tasks != nil {
+		edges = append(edges, picklist.EdgeTasks)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PickListMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case picklist.EdgeOrder:
+		if id := m._order; id != nil {
+			return []ent.Value{*id}
+		}
+	case picklist.EdgeTasks:
+		ids := make([]ent.Value, 0, len(m.tasks))
+		for id := range m.tasks {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PickListMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.removedtasks != nil {
+		edges = append(edges, picklist.EdgeTasks)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PickListMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case picklist.EdgeTasks:
+		ids := make([]ent.Value, 0, len(m.removedtasks))
+		for id := range m.removedtasks {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PickListMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.cleared_order {
+		edges = append(edges, picklist.EdgeOrder)
+	}
+	if m.clearedtasks {
+		edges = append(edges, picklist.EdgeTasks)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PickListMutation) EdgeCleared(name string) bool {
+	switch name {
+	case picklist.EdgeOrder:
+		return m.cleared_order
+	case picklist.EdgeTasks:
+		return m.clearedtasks
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PickListMutation) ClearEdge(name string) error {
+	switch name {
+	case picklist.EdgeOrder:
+		m.ClearOrder()
+		return nil
+	}
+	return fmt.Errorf("unknown PickList unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PickListMutation) ResetEdge(name string) error {
+	switch name {
+	case picklist.EdgeOrder:
+		m.ResetOrder()
+		return nil
+	case picklist.EdgeTasks:
+		m.ResetTasks()
+		return nil
+	}
+	return fmt.Errorf("unknown PickList edge %s", name)
+}
+
+// PickTaskMutation represents an operation that mutates the PickTask nodes in the graph.
+type PickTaskMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int
+	quantity          *int
+	addquantity       *int
+	status            *string
+	picked_at         *time.Time
+	bin_id            *int
+	addbin_id         *int
+	clearedFields     map[string]struct{}
+	picklist          *int
+	clearedpicklist   bool
+	order_line        *int
+	clearedorder_line bool
+	done              bool
+	oldValue          func(context.Context) (*PickTask, error)
+	predicates        []predicate.PickTask
+}
+
+var _ ent.Mutation = (*PickTaskMutation)(nil)
+
+// picktaskOption allows management of the mutation configuration using functional options.
+type picktaskOption func(*PickTaskMutation)
+
+// newPickTaskMutation creates new mutation for the PickTask entity.
+func newPickTaskMutation(c config, op Op, opts ...picktaskOption) *PickTaskMutation {
+	m := &PickTaskMutation{
+		config:        c,
+		op:            op,
+		typ:           TypePickTask,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withPickTaskID sets the ID field of the mutation.
+func withPickTaskID(id int) picktaskOption {
+	return func(m *PickTaskMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *PickTask
+		)
+		m.oldValue = func(ctx context.Context) (*PickTask, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().PickTask.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withPickTask sets the old PickTask of the mutation.
+func withPickTask(node *PickTask) picktaskOption {
+	return func(m *PickTaskMutation) {
+		m.oldValue = func(context.Context) (*PickTask, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m PickTaskMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m PickTaskMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *PickTaskMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *PickTaskMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().PickTask.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetQuantity sets the "quantity" field.
+func (m *PickTaskMutation) SetQuantity(i int) {
+	m.quantity = &i
+	m.addquantity = nil
+}
+
+// Quantity returns the value of the "quantity" field in the mutation.
+func (m *PickTaskMutation) Quantity() (r int, exists bool) {
+	v := m.quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuantity returns the old "quantity" field's value of the PickTask entity.
+// If the PickTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickTaskMutation) OldQuantity(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
+	}
+	return oldValue.Quantity, nil
+}
+
+// AddQuantity adds i to the "quantity" field.
+func (m *PickTaskMutation) AddQuantity(i int) {
+	if m.addquantity != nil {
+		*m.addquantity += i
+	} else {
+		m.addquantity = &i
+	}
+}
+
+// AddedQuantity returns the value that was added to the "quantity" field in this mutation.
+func (m *PickTaskMutation) AddedQuantity() (r int, exists bool) {
+	v := m.addquantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetQuantity resets all changes to the "quantity" field.
+func (m *PickTaskMutation) ResetQuantity() {
+	m.quantity = nil
+	m.addquantity = nil
+}
+
+// SetStatus sets the "status" field.
+func (m *PickTaskMutation) SetStatus(s string) {
+	m.status = &s
+}
+
+// Status returns the value of the "status" field in the mutation.
+func (m *PickTaskMutation) Status() (r string, exists bool) {
+	v := m.status
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldStatus returns the old "status" field's value of the PickTask entity.
+// If the PickTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickTaskMutation) OldStatus(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldStatus is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldStatus requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldStatus: %w", err)
+	}
+	return oldValue.Status, nil
+}
+
+// ResetStatus resets all changes to the "status" field.
+func (m *PickTaskMutation) ResetStatus() {
+	m.status = nil
+}
+
+// SetPickedAt sets the "picked_at" field.
+func (m *PickTaskMutation) SetPickedAt(t time.Time) {
+	m.picked_at = &t
+}
+
+// PickedAt returns the value of the "picked_at" field in the mutation.
+func (m *PickTaskMutation) PickedAt() (r time.Time, exists bool) {
+	v := m.picked_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPickedAt returns the old "picked_at" field's value of the PickTask entity.
+// If the PickTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickTaskMutation) OldPickedAt(ctx context.Context) (v *time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPickedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPickedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPickedAt: %w", err)
+	}
+	return oldValue.PickedAt, nil
+}
+
+// ClearPickedAt clears the value of the "picked_at" field.
+func (m *PickTaskMutation) ClearPickedAt() {
+	m.picked_at = nil
+	m.clearedFields[picktask.FieldPickedAt] = struct{}{}
+}
+
+// PickedAtCleared returns if the "picked_at" field was cleared in this mutation.
+func (m *PickTaskMutation) PickedAtCleared() bool {
+	_, ok := m.clearedFields[picktask.FieldPickedAt]
+	return ok
+}
+
+// ResetPickedAt resets all changes to the "picked_at" field.
+func (m *PickTaskMutation) ResetPickedAt() {
+	m.picked_at = nil
+	delete(m.clearedFields, picktask.FieldPickedAt)
+}
+
+// SetBinID sets the "bin_id" field.
+func (m *PickTaskMutation) SetBinID(i int) {
+	m.bin_id = &i
+	m.addbin_id = nil
+}
+
+// BinID returns the value of the "bin_id" field in the mutation.
+func (m *PickTaskMutation) BinID() (r int, exists bool) {
+	v := m.bin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBinID returns the old "bin_id" field's value of the PickTask entity.
+// If the PickTask object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *PickTaskMutation) OldBinID(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBinID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBinID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBinID: %w", err)
+	}
+	return oldValue.BinID, nil
+}
+
+// AddBinID adds i to the "bin_id" field.
+func (m *PickTaskMutation) AddBinID(i int) {
+	if m.addbin_id != nil {
+		*m.addbin_id += i
+	} else {
+		m.addbin_id = &i
+	}
+}
+
+// AddedBinID returns the value that was added to the "bin_id" field in this mutation.
+func (m *PickTaskMutation) AddedBinID() (r int, exists bool) {
+	v := m.addbin_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearBinID clears the value of the "bin_id" field.
+func (m *PickTaskMutation) ClearBinID() {
+	m.bin_id = nil
+	m.addbin_id = nil
+	m.clearedFields[picktask.FieldBinID] = struct{}{}
+}
+
+// BinIDCleared returns if the "bin_id" field was cleared in this mutation.
+func (m *PickTaskMutation) BinIDCleared() bool {
+	_, ok := m.clearedFields[picktask.FieldBinID]
+	return ok
+}
+
+// ResetBinID resets all changes to the "bin_id" field.
+func (m *PickTaskMutation) ResetBinID() {
+	m.bin_id = nil
+	m.addbin_id = nil
+	delete(m.clearedFields, picktask.FieldBinID)
+}
+
+// SetPicklistID sets the "picklist" edge to the PickList entity by id.
+func (m *PickTaskMutation) SetPicklistID(id int) {
+	m.picklist = &id
+}
+
+// ClearPicklist clears the "picklist" edge to the PickList entity.
+func (m *PickTaskMutation) ClearPicklist() {
+	m.clearedpicklist = true
+}
+
+// PicklistCleared reports if the "picklist" edge to the PickList entity was cleared.
+func (m *PickTaskMutation) PicklistCleared() bool {
+	return m.clearedpicklist
+}
+
+// PicklistID returns the "picklist" edge ID in the mutation.
+func (m *PickTaskMutation) PicklistID() (id int, exists bool) {
+	if m.picklist != nil {
+		return *m.picklist, true
+	}
+	return
+}
+
+// PicklistIDs returns the "picklist" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// PicklistID instead. It exists only for internal usage by the builders.
+func (m *PickTaskMutation) PicklistIDs() (ids []int) {
+	if id := m.picklist; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetPicklist resets all changes to the "picklist" edge.
+func (m *PickTaskMutation) ResetPicklist() {
+	m.picklist = nil
+	m.clearedpicklist = false
+}
+
+// SetOrderLineID sets the "order_line" edge to the OrderLine entity by id.
+func (m *PickTaskMutation) SetOrderLineID(id int) {
+	m.order_line = &id
+}
+
+// ClearOrderLine clears the "order_line" edge to the OrderLine entity.
+func (m *PickTaskMutation) ClearOrderLine() {
+	m.clearedorder_line = true
+}
+
+// OrderLineCleared reports if the "order_line" edge to the OrderLine entity was cleared.
+func (m *PickTaskMutation) OrderLineCleared() bool {
+	return m.clearedorder_line
+}
+
+// OrderLineID returns the "order_line" edge ID in the mutation.
+func (m *PickTaskMutation) OrderLineID() (id int, exists bool) {
+	if m.order_line != nil {
+		return *m.order_line, true
+	}
+	return
+}
+
+// OrderLineIDs returns the "order_line" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrderLineID instead. It exists only for internal usage by the builders.
+func (m *PickTaskMutation) OrderLineIDs() (ids []int) {
+	if id := m.order_line; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrderLine resets all changes to the "order_line" edge.
+func (m *PickTaskMutation) ResetOrderLine() {
+	m.order_line = nil
+	m.clearedorder_line = false
+}
+
+// Where appends a list predicates to the PickTaskMutation builder.
+func (m *PickTaskMutation) Where(ps ...predicate.PickTask) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the PickTaskMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *PickTaskMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.PickTask, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *PickTaskMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *PickTaskMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (PickTask).
+func (m *PickTaskMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *PickTaskMutation) Fields() []string {
+	fields := make([]string, 0, 4)
+	if m.quantity != nil {
+		fields = append(fields, picktask.FieldQuantity)
+	}
+	if m.status != nil {
+		fields = append(fields, picktask.FieldStatus)
+	}
+	if m.picked_at != nil {
+		fields = append(fields, picktask.FieldPickedAt)
+	}
+	if m.bin_id != nil {
+		fields = append(fields, picktask.FieldBinID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *PickTaskMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case picktask.FieldQuantity:
+		return m.Quantity()
+	case picktask.FieldStatus:
+		return m.Status()
+	case picktask.FieldPickedAt:
+		return m.PickedAt()
+	case picktask.FieldBinID:
+		return m.BinID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *PickTaskMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case picktask.FieldQuantity:
+		return m.OldQuantity(ctx)
+	case picktask.FieldStatus:
+		return m.OldStatus(ctx)
+	case picktask.FieldPickedAt:
+		return m.OldPickedAt(ctx)
+	case picktask.FieldBinID:
+		return m.OldBinID(ctx)
+	}
+	return nil, fmt.Errorf("unknown PickTask field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PickTaskMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case picktask.FieldQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuantity(v)
+		return nil
+	case picktask.FieldStatus:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetStatus(v)
+		return nil
+	case picktask.FieldPickedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPickedAt(v)
+		return nil
+	case picktask.FieldBinID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBinID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PickTask field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *PickTaskMutation) AddedFields() []string {
+	var fields []string
+	if m.addquantity != nil {
+		fields = append(fields, picktask.FieldQuantity)
+	}
+	if m.addbin_id != nil {
+		fields = append(fields, picktask.FieldBinID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *PickTaskMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case picktask.FieldQuantity:
+		return m.AddedQuantity()
+	case picktask.FieldBinID:
+		return m.AddedBinID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *PickTaskMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case picktask.FieldQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddQuantity(v)
+		return nil
+	case picktask.FieldBinID:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddBinID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown PickTask numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *PickTaskMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(picktask.FieldPickedAt) {
+		fields = append(fields, picktask.FieldPickedAt)
+	}
+	if m.FieldCleared(picktask.FieldBinID) {
+		fields = append(fields, picktask.FieldBinID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *PickTaskMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *PickTaskMutation) ClearField(name string) error {
+	switch name {
+	case picktask.FieldPickedAt:
+		m.ClearPickedAt()
+		return nil
+	case picktask.FieldBinID:
+		m.ClearBinID()
+		return nil
+	}
+	return fmt.Errorf("unknown PickTask nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *PickTaskMutation) ResetField(name string) error {
+	switch name {
+	case picktask.FieldQuantity:
+		m.ResetQuantity()
+		return nil
+	case picktask.FieldStatus:
+		m.ResetStatus()
+		return nil
+	case picktask.FieldPickedAt:
+		m.ResetPickedAt()
+		return nil
+	case picktask.FieldBinID:
+		m.ResetBinID()
+		return nil
+	}
+	return fmt.Errorf("unknown PickTask field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *PickTaskMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.picklist != nil {
+		edges = append(edges, picktask.EdgePicklist)
+	}
+	if m.order_line != nil {
+		edges = append(edges, picktask.EdgeOrderLine)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *PickTaskMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case picktask.EdgePicklist:
+		if id := m.picklist; id != nil {
+			return []ent.Value{*id}
+		}
+	case picktask.EdgeOrderLine:
+		if id := m.order_line; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *PickTaskMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *PickTaskMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *PickTaskMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedpicklist {
+		edges = append(edges, picktask.EdgePicklist)
+	}
+	if m.clearedorder_line {
+		edges = append(edges, picktask.EdgeOrderLine)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *PickTaskMutation) EdgeCleared(name string) bool {
+	switch name {
+	case picktask.EdgePicklist:
+		return m.clearedpicklist
+	case picktask.EdgeOrderLine:
+		return m.clearedorder_line
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *PickTaskMutation) ClearEdge(name string) error {
+	switch name {
+	case picktask.EdgePicklist:
+		m.ClearPicklist()
+		return nil
+	case picktask.EdgeOrderLine:
+		m.ClearOrderLine()
+		return nil
+	}
+	return fmt.Errorf("unknown PickTask unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *PickTaskMutation) ResetEdge(name string) error {
+	switch name {
+	case picktask.EdgePicklist:
+		m.ResetPicklist()
+		return nil
+	case picktask.EdgeOrderLine:
+		m.ResetOrderLine()
+		return nil
+	}
+	return fmt.Errorf("unknown PickTask edge %s", name)
 }
 
 // StockMovementMutation represents an operation that mutates the StockMovement nodes in the graph.

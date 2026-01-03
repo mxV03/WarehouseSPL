@@ -20,6 +20,8 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picklist"
+	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/zone"
 )
@@ -39,6 +41,10 @@ type Client struct {
 	Order *OrderClient
 	// OrderLine is the client for interacting with the OrderLine builders.
 	OrderLine *OrderLineClient
+	// PickList is the client for interacting with the PickList builders.
+	PickList *PickListClient
+	// PickTask is the client for interacting with the PickTask builders.
+	PickTask *PickTaskClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
 	// Zone is the client for interacting with the Zone builders.
@@ -59,6 +65,8 @@ func (c *Client) init() {
 	c.Location = NewLocationClient(c.config)
 	c.Order = NewOrderClient(c.config)
 	c.OrderLine = NewOrderLineClient(c.config)
+	c.PickList = NewPickListClient(c.config)
+	c.PickTask = NewPickTaskClient(c.config)
 	c.StockMovement = NewStockMovementClient(c.config)
 	c.Zone = NewZoneClient(c.config)
 }
@@ -158,6 +166,8 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		Location:      NewLocationClient(cfg),
 		Order:         NewOrderClient(cfg),
 		OrderLine:     NewOrderLineClient(cfg),
+		PickList:      NewPickListClient(cfg),
+		PickTask:      NewPickTaskClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
 		Zone:          NewZoneClient(cfg),
 	}, nil
@@ -184,6 +194,8 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		Location:      NewLocationClient(cfg),
 		Order:         NewOrderClient(cfg),
 		OrderLine:     NewOrderLineClient(cfg),
+		PickList:      NewPickListClient(cfg),
+		PickTask:      NewPickTaskClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
 		Zone:          NewZoneClient(cfg),
 	}, nil
@@ -215,7 +227,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.StockMovement, c.Zone,
+		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList, c.PickTask,
+		c.StockMovement, c.Zone,
 	} {
 		n.Use(hooks...)
 	}
@@ -225,7 +238,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.StockMovement, c.Zone,
+		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList, c.PickTask,
+		c.StockMovement, c.Zone,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -244,6 +258,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Order.mutate(ctx, m)
 	case *OrderLineMutation:
 		return c.OrderLine.mutate(ctx, m)
+	case *PickListMutation:
+		return c.PickList.mutate(ctx, m)
+	case *PickTaskMutation:
+		return c.PickTask.mutate(ctx, m)
 	case *StockMovementMutation:
 		return c.StockMovement.mutate(ctx, m)
 	case *ZoneMutation:
@@ -936,6 +954,22 @@ func (c *OrderClient) QueryLines(_m *Order) *OrderLineQuery {
 	return query
 }
 
+// QueryPicklist queries the picklist edge of a Order.
+func (c *OrderClient) QueryPicklist(_m *Order) *PickListQuery {
+	query := (&PickListClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(picklist.Table, picklist.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, order.PicklistTable, order.PicklistColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *OrderClient) Hooks() []Hook {
 	return c.hooks.Order
@@ -1117,6 +1151,22 @@ func (c *OrderLineClient) QueryLocation(_m *OrderLine) *LocationQuery {
 	return query
 }
 
+// QueryPickTasks queries the pick_tasks edge of a OrderLine.
+func (c *OrderLineClient) QueryPickTasks(_m *OrderLine) *PickTaskQuery {
+	query := (&PickTaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(orderline.Table, orderline.FieldID, id),
+			sqlgraph.To(picktask.Table, picktask.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, orderline.PickTasksTable, orderline.PickTasksColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *OrderLineClient) Hooks() []Hook {
 	return c.hooks.OrderLine
@@ -1139,6 +1189,336 @@ func (c *OrderLineClient) mutate(ctx context.Context, m *OrderLineMutation) (Val
 		return (&OrderLineDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown OrderLine mutation op: %q", m.Op())
+	}
+}
+
+// PickListClient is a client for the PickList schema.
+type PickListClient struct {
+	config
+}
+
+// NewPickListClient returns a client for the PickList from the given config.
+func NewPickListClient(c config) *PickListClient {
+	return &PickListClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `picklist.Hooks(f(g(h())))`.
+func (c *PickListClient) Use(hooks ...Hook) {
+	c.hooks.PickList = append(c.hooks.PickList, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `picklist.Intercept(f(g(h())))`.
+func (c *PickListClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PickList = append(c.inters.PickList, interceptors...)
+}
+
+// Create returns a builder for creating a PickList entity.
+func (c *PickListClient) Create() *PickListCreate {
+	mutation := newPickListMutation(c.config, OpCreate)
+	return &PickListCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PickList entities.
+func (c *PickListClient) CreateBulk(builders ...*PickListCreate) *PickListCreateBulk {
+	return &PickListCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PickListClient) MapCreateBulk(slice any, setFunc func(*PickListCreate, int)) *PickListCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PickListCreateBulk{err: fmt.Errorf("calling to PickListClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PickListCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PickListCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PickList.
+func (c *PickListClient) Update() *PickListUpdate {
+	mutation := newPickListMutation(c.config, OpUpdate)
+	return &PickListUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PickListClient) UpdateOne(_m *PickList) *PickListUpdateOne {
+	mutation := newPickListMutation(c.config, OpUpdateOne, withPickList(_m))
+	return &PickListUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PickListClient) UpdateOneID(id int) *PickListUpdateOne {
+	mutation := newPickListMutation(c.config, OpUpdateOne, withPickListID(id))
+	return &PickListUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PickList.
+func (c *PickListClient) Delete() *PickListDelete {
+	mutation := newPickListMutation(c.config, OpDelete)
+	return &PickListDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PickListClient) DeleteOne(_m *PickList) *PickListDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PickListClient) DeleteOneID(id int) *PickListDeleteOne {
+	builder := c.Delete().Where(picklist.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PickListDeleteOne{builder}
+}
+
+// Query returns a query builder for PickList.
+func (c *PickListClient) Query() *PickListQuery {
+	return &PickListQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePickList},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PickList entity by its id.
+func (c *PickListClient) Get(ctx context.Context, id int) (*PickList, error) {
+	return c.Query().Where(picklist.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PickListClient) GetX(ctx context.Context, id int) *PickList {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOrder queries the order edge of a PickList.
+func (c *PickListClient) QueryOrder(_m *PickList) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(picklist.Table, picklist.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, picklist.OrderTable, picklist.OrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTasks queries the tasks edge of a PickList.
+func (c *PickListClient) QueryTasks(_m *PickList) *PickTaskQuery {
+	query := (&PickTaskClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(picklist.Table, picklist.FieldID, id),
+			sqlgraph.To(picktask.Table, picktask.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, picklist.TasksTable, picklist.TasksColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PickListClient) Hooks() []Hook {
+	return c.hooks.PickList
+}
+
+// Interceptors returns the client interceptors.
+func (c *PickListClient) Interceptors() []Interceptor {
+	return c.inters.PickList
+}
+
+func (c *PickListClient) mutate(ctx context.Context, m *PickListMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PickListCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PickListUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PickListUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PickListDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PickList mutation op: %q", m.Op())
+	}
+}
+
+// PickTaskClient is a client for the PickTask schema.
+type PickTaskClient struct {
+	config
+}
+
+// NewPickTaskClient returns a client for the PickTask from the given config.
+func NewPickTaskClient(c config) *PickTaskClient {
+	return &PickTaskClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `picktask.Hooks(f(g(h())))`.
+func (c *PickTaskClient) Use(hooks ...Hook) {
+	c.hooks.PickTask = append(c.hooks.PickTask, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `picktask.Intercept(f(g(h())))`.
+func (c *PickTaskClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PickTask = append(c.inters.PickTask, interceptors...)
+}
+
+// Create returns a builder for creating a PickTask entity.
+func (c *PickTaskClient) Create() *PickTaskCreate {
+	mutation := newPickTaskMutation(c.config, OpCreate)
+	return &PickTaskCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PickTask entities.
+func (c *PickTaskClient) CreateBulk(builders ...*PickTaskCreate) *PickTaskCreateBulk {
+	return &PickTaskCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PickTaskClient) MapCreateBulk(slice any, setFunc func(*PickTaskCreate, int)) *PickTaskCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PickTaskCreateBulk{err: fmt.Errorf("calling to PickTaskClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PickTaskCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PickTaskCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PickTask.
+func (c *PickTaskClient) Update() *PickTaskUpdate {
+	mutation := newPickTaskMutation(c.config, OpUpdate)
+	return &PickTaskUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PickTaskClient) UpdateOne(_m *PickTask) *PickTaskUpdateOne {
+	mutation := newPickTaskMutation(c.config, OpUpdateOne, withPickTask(_m))
+	return &PickTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PickTaskClient) UpdateOneID(id int) *PickTaskUpdateOne {
+	mutation := newPickTaskMutation(c.config, OpUpdateOne, withPickTaskID(id))
+	return &PickTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PickTask.
+func (c *PickTaskClient) Delete() *PickTaskDelete {
+	mutation := newPickTaskMutation(c.config, OpDelete)
+	return &PickTaskDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PickTaskClient) DeleteOne(_m *PickTask) *PickTaskDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PickTaskClient) DeleteOneID(id int) *PickTaskDeleteOne {
+	builder := c.Delete().Where(picktask.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PickTaskDeleteOne{builder}
+}
+
+// Query returns a query builder for PickTask.
+func (c *PickTaskClient) Query() *PickTaskQuery {
+	return &PickTaskQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePickTask},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PickTask entity by its id.
+func (c *PickTaskClient) Get(ctx context.Context, id int) (*PickTask, error) {
+	return c.Query().Where(picktask.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PickTaskClient) GetX(ctx context.Context, id int) *PickTask {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryPicklist queries the picklist edge of a PickTask.
+func (c *PickTaskClient) QueryPicklist(_m *PickTask) *PickListQuery {
+	query := (&PickListClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(picktask.Table, picktask.FieldID, id),
+			sqlgraph.To(picklist.Table, picklist.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, picktask.PicklistTable, picktask.PicklistColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryOrderLine queries the order_line edge of a PickTask.
+func (c *PickTaskClient) QueryOrderLine(_m *PickTask) *OrderLineQuery {
+	query := (&OrderLineClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(picktask.Table, picktask.FieldID, id),
+			sqlgraph.To(orderline.Table, orderline.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, picktask.OrderLineTable, picktask.OrderLineColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PickTaskClient) Hooks() []Hook {
+	return c.hooks.PickTask
+}
+
+// Interceptors returns the client interceptors.
+func (c *PickTaskClient) Interceptors() []Interceptor {
+	return c.inters.PickTask
+}
+
+func (c *PickTaskClient) mutate(ctx context.Context, m *PickTaskMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PickTaskCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PickTaskUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PickTaskUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PickTaskDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PickTask mutation op: %q", m.Op())
 	}
 }
 
@@ -1475,9 +1855,11 @@ func (c *ZoneClient) mutate(ctx context.Context, m *ZoneMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Bin, Item, Location, Order, OrderLine, StockMovement, Zone []ent.Hook
+		Bin, Item, Location, Order, OrderLine, PickList, PickTask, StockMovement,
+		Zone []ent.Hook
 	}
 	inters struct {
-		Bin, Item, Location, Order, OrderLine, StockMovement, Zone []ent.Interceptor
+		Bin, Item, Location, Order, OrderLine, PickList, PickTask, StockMovement,
+		Zone []ent.Interceptor
 	}
 )

@@ -167,6 +167,29 @@ func HasLocationWith(preds ...predicate.Location) predicate.OrderLine {
 	})
 }
 
+// HasPickTasks applies the HasEdge predicate on the "pick_tasks" edge.
+func HasPickTasks() predicate.OrderLine {
+	return predicate.OrderLine(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PickTasksTable, PickTasksColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPickTasksWith applies the HasEdge predicate on the "pick_tasks" edge with a given conditions (other predicates).
+func HasPickTasksWith(preds ...predicate.PickTask) predicate.OrderLine {
+	return predicate.OrderLine(func(s *sql.Selector) {
+		step := newPickTasksStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.OrderLine) predicate.OrderLine {
 	return predicate.OrderLine(sql.AndPredicates(predicates...))

@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picklist"
 	"github.com/mxV03/wms/ent/predicate"
 )
 
@@ -100,6 +101,25 @@ func (_u *OrderUpdate) AddLines(v ...*OrderLine) *OrderUpdate {
 	return _u.AddLineIDs(ids...)
 }
 
+// SetPicklistID sets the "picklist" edge to the PickList entity by ID.
+func (_u *OrderUpdate) SetPicklistID(id int) *OrderUpdate {
+	_u.mutation.SetPicklistID(id)
+	return _u
+}
+
+// SetNillablePicklistID sets the "picklist" edge to the PickList entity by ID if the given value is not nil.
+func (_u *OrderUpdate) SetNillablePicklistID(id *int) *OrderUpdate {
+	if id != nil {
+		_u = _u.SetPicklistID(*id)
+	}
+	return _u
+}
+
+// SetPicklist sets the "picklist" edge to the PickList entity.
+func (_u *OrderUpdate) SetPicklist(v *PickList) *OrderUpdate {
+	return _u.SetPicklistID(v.ID)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdate) Mutation() *OrderMutation {
 	return _u.mutation
@@ -124,6 +144,12 @@ func (_u *OrderUpdate) RemoveLines(v ...*OrderLine) *OrderUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveLineIDs(ids...)
+}
+
+// ClearPicklist clears the "picklist" edge to the PickList entity.
+func (_u *OrderUpdate) ClearPicklist() *OrderUpdate {
+	_u.mutation.ClearPicklist()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -242,6 +268,35 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.PicklistCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.PicklistTable,
+			Columns: []string{order.PicklistColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PicklistIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.PicklistTable,
+			Columns: []string{order.PicklistColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{order.Label}
@@ -333,6 +388,25 @@ func (_u *OrderUpdateOne) AddLines(v ...*OrderLine) *OrderUpdateOne {
 	return _u.AddLineIDs(ids...)
 }
 
+// SetPicklistID sets the "picklist" edge to the PickList entity by ID.
+func (_u *OrderUpdateOne) SetPicklistID(id int) *OrderUpdateOne {
+	_u.mutation.SetPicklistID(id)
+	return _u
+}
+
+// SetNillablePicklistID sets the "picklist" edge to the PickList entity by ID if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillablePicklistID(id *int) *OrderUpdateOne {
+	if id != nil {
+		_u = _u.SetPicklistID(*id)
+	}
+	return _u
+}
+
+// SetPicklist sets the "picklist" edge to the PickList entity.
+func (_u *OrderUpdateOne) SetPicklist(v *PickList) *OrderUpdateOne {
+	return _u.SetPicklistID(v.ID)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdateOne) Mutation() *OrderMutation {
 	return _u.mutation
@@ -357,6 +431,12 @@ func (_u *OrderUpdateOne) RemoveLines(v ...*OrderLine) *OrderUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveLineIDs(ids...)
+}
+
+// ClearPicklist clears the "picklist" edge to the PickList entity.
+func (_u *OrderUpdateOne) ClearPicklist() *OrderUpdateOne {
+	_u.mutation.ClearPicklist()
+	return _u
 }
 
 // Where appends a list predicates to the OrderUpdate builder.
@@ -498,6 +578,35 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PicklistCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.PicklistTable,
+			Columns: []string{order.PicklistColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PicklistIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.PicklistTable,
+			Columns: []string{order.PicklistColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

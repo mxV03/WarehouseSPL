@@ -79,6 +79,25 @@ func init() {
 	})
 
 	registry.Register(registry.Command{
+		Name:        "logistics.zone.delete",
+		Usage:       "logistics.zone.delete <locationCode> <zoneCode>",
+		Group:       "Optional / Logistics",
+		Description: "Delete a zone only if it has no bins.",
+		Run: func(ctx context.Context, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("usage: logistics.bin.delete <locationCode> <zoneCode>")
+			}
+
+			svc := logistics.NewLocationService(clictx.AppCtx().Client())
+			if err := svc.DeleteZone(ctx, args[0], args[1]); err != nil {
+				return err
+			}
+			fmt.Printf("deleted zone %s (loc=%s)\n", args[1], args[0])
+			return nil
+		},
+	})
+
+	registry.Register(registry.Command{
 		Name:        "logistics.bin.add",
 		Usage:       "logistics.bin.add <locationCode> <zoneCode> <binCod> [name]",
 		Group:       "Optional / Logistics",
@@ -244,22 +263,4 @@ func init() {
 		},
 	})
 
-	registry.Register(registry.Command{
-		Name:        "logistics.zone.delete",
-		Usage:       "logistics.zone.delete <locationCode> <zoneCode>",
-		Group:       "Optional / Logistics",
-		Description: "Delete a zone only if it has no bins.",
-		Run: func(ctx context.Context, args []string) error {
-			if len(args) != 2 {
-				return fmt.Errorf("usage: logistics.bin.delete <locationCode> <zoneCode>")
-			}
-
-			svc := logistics.NewLocationService(clictx.AppCtx().Client())
-			if err := svc.DeleteZone(ctx, args[0], args[1]); err != nil {
-				return err
-			}
-			fmt.Printf("deleted zone %s (loc=%s)\n", args[1], args[0])
-			return nil
-		},
-	})
 }

@@ -69,6 +69,30 @@ func (f OrderLineFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OrderLineMutation", m)
 }
 
+// The PickListFunc type is an adapter to allow the use of ordinary
+// function as PickList mutator.
+type PickListFunc func(context.Context, *ent.PickListMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PickListFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PickListMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PickListMutation", m)
+}
+
+// The PickTaskFunc type is an adapter to allow the use of ordinary
+// function as PickTask mutator.
+type PickTaskFunc func(context.Context, *ent.PickTaskMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PickTaskFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PickTaskMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PickTaskMutation", m)
+}
+
 // The StockMovementFunc type is an adapter to allow the use of ordinary
 // function as StockMovement mutator.
 type StockMovementFunc func(context.Context, *ent.StockMovementMutation) (ent.Value, error)

@@ -333,6 +333,29 @@ func HasLinesWith(preds ...predicate.OrderLine) predicate.Order {
 	})
 }
 
+// HasPicklist applies the HasEdge predicate on the "picklist" edge.
+func HasPicklist() predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, PicklistTable, PicklistColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPicklistWith applies the HasEdge predicate on the "picklist" edge with a given conditions (other predicates).
+func HasPicklistWith(preds ...predicate.PickList) predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := newPicklistStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Order) predicate.Order {
 	return predicate.Order(sql.AndPredicates(predicates...))

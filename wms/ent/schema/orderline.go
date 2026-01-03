@@ -36,5 +36,7 @@ func (OrderLine) Edges() []ent.Edge {
 			Ref("order_lines").
 			Unique().
 			Required(),
+
+		edge.To("pick_tasks", PickTask.Type),
 	}
 }

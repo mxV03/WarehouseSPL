@@ -24,6 +24,8 @@ const (
 	FieldCreatedAt = "created_at"
 	// EdgeLines holds the string denoting the lines edge name in mutations.
 	EdgeLines = "lines"
+	// EdgePicklist holds the string denoting the picklist edge name in mutations.
+	EdgePicklist = "picklist"
 	// Table holds the table name of the order in the database.
 	Table = "orders"
 	// LinesTable is the table that holds the lines relation/edge.
@@ -33,6 +35,13 @@ const (
 	LinesInverseTable = "order_lines"
 	// LinesColumn is the table column denoting the lines relation/edge.
 	LinesColumn = "order_lines"
+	// PicklistTable is the table that holds the picklist relation/edge.
+	PicklistTable = "pick_lists"
+	// PicklistInverseTable is the table name for the PickList entity.
+	// It exists in this package in order to avoid circular dependency with the "picklist" package.
+	PicklistInverseTable = "pick_lists"
+	// PicklistColumn is the table column denoting the picklist relation/edge.
+	PicklistColumn = "order_picklist"
 )
 
 // Columns holds all SQL columns for order fields.
@@ -108,10 +117,24 @@ func ByLines(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newLinesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByPicklistField orders the results by picklist field.
+func ByPicklistField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPicklistStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(LinesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, LinesTable, LinesColumn),
+	)
+}
+func newPicklistStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PicklistInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, PicklistTable, PicklistColumn),
 	)
 }

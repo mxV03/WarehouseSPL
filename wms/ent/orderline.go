@@ -38,9 +38,11 @@ type OrderLineEdges struct {
 	Item *Item `json:"item,omitempty"`
 	// Location holds the value of the location edge.
 	Location *Location `json:"location,omitempty"`
+	// PickTasks holds the value of the pick_tasks edge.
+	PickTasks []*PickTask `json:"pick_tasks,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [3]bool
+	loadedTypes [4]bool
 }
 
 // OrderOrErr returns the Order value or an error if the edge
@@ -74,6 +76,15 @@ func (e OrderLineEdges) LocationOrErr() (*Location, error) {
 		return nil, &NotFoundError{label: location.Label}
 	}
 	return nil, &NotLoadedError{edge: "location"}
+}
+
+// PickTasksOrErr returns the PickTasks value or an error if the edge
+// was not loaded in eager-loading.
+func (e OrderLineEdges) PickTasksOrErr() ([]*PickTask, error) {
+	if e.loadedTypes[3] {
+		return e.PickTasks, nil
+	}
+	return nil, &NotLoadedError{edge: "pick_tasks"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -163,6 +174,11 @@ func (_m *OrderLine) QueryItem() *ItemQuery {
 // QueryLocation queries the "location" edge of the OrderLine entity.
 func (_m *OrderLine) QueryLocation() *LocationQuery {
 	return NewOrderLineClient(_m.config).QueryLocation(_m)
+}
+
+// QueryPickTasks queries the "pick_tasks" edge of the OrderLine entity.
+func (_m *OrderLine) QueryPickTasks() *PickTaskQuery {
+	return NewOrderLineClient(_m.config).QueryPickTasks(_m)
 }
 
 // Update returns a builder for updating this OrderLine.

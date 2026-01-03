@@ -13,59 +13,60 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/wms/ent/order"
-	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/picklist"
+	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/predicate"
 )
 
-// OrderQuery is the builder for querying Order entities.
-type OrderQuery struct {
+// PickListQuery is the builder for querying PickList entities.
+type PickListQuery struct {
 	config
-	ctx          *QueryContext
-	order        []order.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.Order
-	withLines    *OrderLineQuery
-	withPicklist *PickListQuery
+	ctx        *QueryContext
+	order      []picklist.OrderOption
+	inters     []Interceptor
+	predicates []predicate.PickList
+	withOrder  *OrderQuery
+	withTasks  *PickTaskQuery
+	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
 }
 
-// Where adds a new predicate for the OrderQuery builder.
-func (_q *OrderQuery) Where(ps ...predicate.Order) *OrderQuery {
+// Where adds a new predicate for the PickListQuery builder.
+func (_q *PickListQuery) Where(ps ...predicate.PickList) *PickListQuery {
 	_q.predicates = append(_q.predicates, ps...)
 	return _q
 }
 
 // Limit the number of records to be returned by this query.
-func (_q *OrderQuery) Limit(limit int) *OrderQuery {
+func (_q *PickListQuery) Limit(limit int) *PickListQuery {
 	_q.ctx.Limit = &limit
 	return _q
 }
 
 // Offset to start from.
-func (_q *OrderQuery) Offset(offset int) *OrderQuery {
+func (_q *PickListQuery) Offset(offset int) *PickListQuery {
 	_q.ctx.Offset = &offset
 	return _q
 }
 
 // Unique configures the query builder to filter duplicate records on query.
 // By default, unique is set to true, and can be disabled using this method.
-func (_q *OrderQuery) Unique(unique bool) *OrderQuery {
+func (_q *PickListQuery) Unique(unique bool) *PickListQuery {
 	_q.ctx.Unique = &unique
 	return _q
 }
 
 // Order specifies how the records should be ordered.
-func (_q *OrderQuery) Order(o ...order.OrderOption) *OrderQuery {
+func (_q *PickListQuery) Order(o ...picklist.OrderOption) *PickListQuery {
 	_q.order = append(_q.order, o...)
 	return _q
 }
 
-// QueryLines chains the current query on the "lines" edge.
-func (_q *OrderQuery) QueryLines() *OrderLineQuery {
-	query := (&OrderLineClient{config: _q.config}).Query()
+// QueryOrder chains the current query on the "order" edge.
+func (_q *PickListQuery) QueryOrder() *OrderQuery {
+	query := (&OrderClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -75,9 +76,9 @@ func (_q *OrderQuery) QueryLines() *OrderLineQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(order.Table, order.FieldID, selector),
-			sqlgraph.To(orderline.Table, orderline.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, order.LinesTable, order.LinesColumn),
+			sqlgraph.From(picklist.Table, picklist.FieldID, selector),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, picklist.OrderTable, picklist.OrderColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -85,9 +86,9 @@ func (_q *OrderQuery) QueryLines() *OrderLineQuery {
 	return query
 }
 
-// QueryPicklist chains the current query on the "picklist" edge.
-func (_q *OrderQuery) QueryPicklist() *PickListQuery {
-	query := (&PickListClient{config: _q.config}).Query()
+// QueryTasks chains the current query on the "tasks" edge.
+func (_q *PickListQuery) QueryTasks() *PickTaskQuery {
+	query := (&PickTaskClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -97,9 +98,9 @@ func (_q *OrderQuery) QueryPicklist() *PickListQuery {
 			return nil, err
 		}
 		step := sqlgraph.NewStep(
-			sqlgraph.From(order.Table, order.FieldID, selector),
-			sqlgraph.To(picklist.Table, picklist.FieldID),
-			sqlgraph.Edge(sqlgraph.O2O, false, order.PicklistTable, order.PicklistColumn),
+			sqlgraph.From(picklist.Table, picklist.FieldID, selector),
+			sqlgraph.To(picktask.Table, picktask.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, picklist.TasksTable, picklist.TasksColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -107,21 +108,21 @@ func (_q *OrderQuery) QueryPicklist() *PickListQuery {
 	return query
 }
 
-// First returns the first Order entity from the query.
-// Returns a *NotFoundError when no Order was found.
-func (_q *OrderQuery) First(ctx context.Context) (*Order, error) {
+// First returns the first PickList entity from the query.
+// Returns a *NotFoundError when no PickList was found.
+func (_q *PickListQuery) First(ctx context.Context) (*PickList, error) {
 	nodes, err := _q.Limit(1).All(setContextOp(ctx, _q.ctx, ent.OpQueryFirst))
 	if err != nil {
 		return nil, err
 	}
 	if len(nodes) == 0 {
-		return nil, &NotFoundError{order.Label}
+		return nil, &NotFoundError{picklist.Label}
 	}
 	return nodes[0], nil
 }
 
 // FirstX is like First, but panics if an error occurs.
-func (_q *OrderQuery) FirstX(ctx context.Context) *Order {
+func (_q *PickListQuery) FirstX(ctx context.Context) *PickList {
 	node, err := _q.First(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -129,22 +130,22 @@ func (_q *OrderQuery) FirstX(ctx context.Context) *Order {
 	return node
 }
 
-// FirstID returns the first Order ID from the query.
-// Returns a *NotFoundError when no Order ID was found.
-func (_q *OrderQuery) FirstID(ctx context.Context) (id int, err error) {
+// FirstID returns the first PickList ID from the query.
+// Returns a *NotFoundError when no PickList ID was found.
+func (_q *PickListQuery) FirstID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
 	if len(ids) == 0 {
-		err = &NotFoundError{order.Label}
+		err = &NotFoundError{picklist.Label}
 		return
 	}
 	return ids[0], nil
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *OrderQuery) FirstIDX(ctx context.Context) int {
+func (_q *PickListQuery) FirstIDX(ctx context.Context) int {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -152,10 +153,10 @@ func (_q *OrderQuery) FirstIDX(ctx context.Context) int {
 	return id
 }
 
-// Only returns a single Order entity found by the query, ensuring it only returns one.
-// Returns a *NotSingularError when more than one Order entity is found.
-// Returns a *NotFoundError when no Order entities are found.
-func (_q *OrderQuery) Only(ctx context.Context) (*Order, error) {
+// Only returns a single PickList entity found by the query, ensuring it only returns one.
+// Returns a *NotSingularError when more than one PickList entity is found.
+// Returns a *NotFoundError when no PickList entities are found.
+func (_q *PickListQuery) Only(ctx context.Context) (*PickList, error) {
 	nodes, err := _q.Limit(2).All(setContextOp(ctx, _q.ctx, ent.OpQueryOnly))
 	if err != nil {
 		return nil, err
@@ -164,14 +165,14 @@ func (_q *OrderQuery) Only(ctx context.Context) (*Order, error) {
 	case 1:
 		return nodes[0], nil
 	case 0:
-		return nil, &NotFoundError{order.Label}
+		return nil, &NotFoundError{picklist.Label}
 	default:
-		return nil, &NotSingularError{order.Label}
+		return nil, &NotSingularError{picklist.Label}
 	}
 }
 
 // OnlyX is like Only, but panics if an error occurs.
-func (_q *OrderQuery) OnlyX(ctx context.Context) *Order {
+func (_q *PickListQuery) OnlyX(ctx context.Context) *PickList {
 	node, err := _q.Only(ctx)
 	if err != nil {
 		panic(err)
@@ -179,10 +180,10 @@ func (_q *OrderQuery) OnlyX(ctx context.Context) *Order {
 	return node
 }
 
-// OnlyID is like Only, but returns the only Order ID in the query.
-// Returns a *NotSingularError when more than one Order ID is found.
+// OnlyID is like Only, but returns the only PickList ID in the query.
+// Returns a *NotSingularError when more than one PickList ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *OrderQuery) OnlyID(ctx context.Context) (id int, err error) {
+func (_q *PickListQuery) OnlyID(ctx context.Context) (id int, err error) {
 	var ids []int
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
@@ -191,15 +192,15 @@ func (_q *OrderQuery) OnlyID(ctx context.Context) (id int, err error) {
 	case 1:
 		id = ids[0]
 	case 0:
-		err = &NotFoundError{order.Label}
+		err = &NotFoundError{picklist.Label}
 	default:
-		err = &NotSingularError{order.Label}
+		err = &NotSingularError{picklist.Label}
 	}
 	return
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *OrderQuery) OnlyIDX(ctx context.Context) int {
+func (_q *PickListQuery) OnlyIDX(ctx context.Context) int {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -207,18 +208,18 @@ func (_q *OrderQuery) OnlyIDX(ctx context.Context) int {
 	return id
 }
 
-// All executes the query and returns a list of Orders.
-func (_q *OrderQuery) All(ctx context.Context) ([]*Order, error) {
+// All executes the query and returns a list of PickLists.
+func (_q *PickListQuery) All(ctx context.Context) ([]*PickList, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryAll)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return nil, err
 	}
-	qr := querierAll[[]*Order, *OrderQuery]()
-	return withInterceptors[[]*Order](ctx, _q, qr, _q.inters)
+	qr := querierAll[[]*PickList, *PickListQuery]()
+	return withInterceptors[[]*PickList](ctx, _q, qr, _q.inters)
 }
 
 // AllX is like All, but panics if an error occurs.
-func (_q *OrderQuery) AllX(ctx context.Context) []*Order {
+func (_q *PickListQuery) AllX(ctx context.Context) []*PickList {
 	nodes, err := _q.All(ctx)
 	if err != nil {
 		panic(err)
@@ -226,20 +227,20 @@ func (_q *OrderQuery) AllX(ctx context.Context) []*Order {
 	return nodes
 }
 
-// IDs executes the query and returns a list of Order IDs.
-func (_q *OrderQuery) IDs(ctx context.Context) (ids []int, err error) {
+// IDs executes the query and returns a list of PickList IDs.
+func (_q *PickListQuery) IDs(ctx context.Context) (ids []int, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryIDs)
-	if err = _q.Select(order.FieldID).Scan(ctx, &ids); err != nil {
+	if err = _q.Select(picklist.FieldID).Scan(ctx, &ids); err != nil {
 		return nil, err
 	}
 	return ids, nil
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *OrderQuery) IDsX(ctx context.Context) []int {
+func (_q *PickListQuery) IDsX(ctx context.Context) []int {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -248,16 +249,16 @@ func (_q *OrderQuery) IDsX(ctx context.Context) []int {
 }
 
 // Count returns the count of the given query.
-func (_q *OrderQuery) Count(ctx context.Context) (int, error) {
+func (_q *PickListQuery) Count(ctx context.Context) (int, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryCount)
 	if err := _q.prepareQuery(ctx); err != nil {
 		return 0, err
 	}
-	return withInterceptors[int](ctx, _q, querierCount[*OrderQuery](), _q.inters)
+	return withInterceptors[int](ctx, _q, querierCount[*PickListQuery](), _q.inters)
 }
 
 // CountX is like Count, but panics if an error occurs.
-func (_q *OrderQuery) CountX(ctx context.Context) int {
+func (_q *PickListQuery) CountX(ctx context.Context) int {
 	count, err := _q.Count(ctx)
 	if err != nil {
 		panic(err)
@@ -266,7 +267,7 @@ func (_q *OrderQuery) CountX(ctx context.Context) int {
 }
 
 // Exist returns true if the query has elements in the graph.
-func (_q *OrderQuery) Exist(ctx context.Context) (bool, error) {
+func (_q *PickListQuery) Exist(ctx context.Context) (bool, error) {
 	ctx = setContextOp(ctx, _q.ctx, ent.OpQueryExist)
 	switch _, err := _q.FirstID(ctx); {
 	case IsNotFound(err):
@@ -279,7 +280,7 @@ func (_q *OrderQuery) Exist(ctx context.Context) (bool, error) {
 }
 
 // ExistX is like Exist, but panics if an error occurs.
-func (_q *OrderQuery) ExistX(ctx context.Context) bool {
+func (_q *PickListQuery) ExistX(ctx context.Context) bool {
 	exist, err := _q.Exist(ctx)
 	if err != nil {
 		panic(err)
@@ -287,45 +288,45 @@ func (_q *OrderQuery) ExistX(ctx context.Context) bool {
 	return exist
 }
 
-// Clone returns a duplicate of the OrderQuery builder, including all associated steps. It can be
+// Clone returns a duplicate of the PickListQuery builder, including all associated steps. It can be
 // used to prepare common query builders and use them differently after the clone is made.
-func (_q *OrderQuery) Clone() *OrderQuery {
+func (_q *PickListQuery) Clone() *PickListQuery {
 	if _q == nil {
 		return nil
 	}
-	return &OrderQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]order.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.Order{}, _q.predicates...),
-		withLines:    _q.withLines.Clone(),
-		withPicklist: _q.withPicklist.Clone(),
+	return &PickListQuery{
+		config:     _q.config,
+		ctx:        _q.ctx.Clone(),
+		order:      append([]picklist.OrderOption{}, _q.order...),
+		inters:     append([]Interceptor{}, _q.inters...),
+		predicates: append([]predicate.PickList{}, _q.predicates...),
+		withOrder:  _q.withOrder.Clone(),
+		withTasks:  _q.withTasks.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
 	}
 }
 
-// WithLines tells the query-builder to eager-load the nodes that are connected to
-// the "lines" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *OrderQuery) WithLines(opts ...func(*OrderLineQuery)) *OrderQuery {
-	query := (&OrderLineClient{config: _q.config}).Query()
+// WithOrder tells the query-builder to eager-load the nodes that are connected to
+// the "order" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PickListQuery) WithOrder(opts ...func(*OrderQuery)) *PickListQuery {
+	query := (&OrderClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withLines = query
+	_q.withOrder = query
 	return _q
 }
 
-// WithPicklist tells the query-builder to eager-load the nodes that are connected to
-// the "picklist" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *OrderQuery) WithPicklist(opts ...func(*PickListQuery)) *OrderQuery {
-	query := (&PickListClient{config: _q.config}).Query()
+// WithTasks tells the query-builder to eager-load the nodes that are connected to
+// the "tasks" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *PickListQuery) WithTasks(opts ...func(*PickTaskQuery)) *PickListQuery {
+	query := (&PickTaskClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
-	_q.withPicklist = query
+	_q.withTasks = query
 	return _q
 }
 
@@ -335,19 +336,19 @@ func (_q *OrderQuery) WithPicklist(opts ...func(*PickListQuery)) *OrderQuery {
 // Example:
 //
 //	var v []struct {
-//		OrderNumber string `json:"order_number,omitempty"`
+//		Status string `json:"status,omitempty"`
 //		Count int `json:"count,omitempty"`
 //	}
 //
-//	client.Order.Query().
-//		GroupBy(order.FieldOrderNumber).
+//	client.PickList.Query().
+//		GroupBy(picklist.FieldStatus).
 //		Aggregate(ent.Count()).
 //		Scan(ctx, &v)
-func (_q *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
+func (_q *PickListQuery) GroupBy(field string, fields ...string) *PickListGroupBy {
 	_q.ctx.Fields = append([]string{field}, fields...)
-	grbuild := &OrderGroupBy{build: _q}
+	grbuild := &PickListGroupBy{build: _q}
 	grbuild.flds = &_q.ctx.Fields
-	grbuild.label = order.Label
+	grbuild.label = picklist.Label
 	grbuild.scan = grbuild.Scan
 	return grbuild
 }
@@ -358,26 +359,26 @@ func (_q *OrderQuery) GroupBy(field string, fields ...string) *OrderGroupBy {
 // Example:
 //
 //	var v []struct {
-//		OrderNumber string `json:"order_number,omitempty"`
+//		Status string `json:"status,omitempty"`
 //	}
 //
-//	client.Order.Query().
-//		Select(order.FieldOrderNumber).
+//	client.PickList.Query().
+//		Select(picklist.FieldStatus).
 //		Scan(ctx, &v)
-func (_q *OrderQuery) Select(fields ...string) *OrderSelect {
+func (_q *PickListQuery) Select(fields ...string) *PickListSelect {
 	_q.ctx.Fields = append(_q.ctx.Fields, fields...)
-	sbuild := &OrderSelect{OrderQuery: _q}
-	sbuild.label = order.Label
+	sbuild := &PickListSelect{PickListQuery: _q}
+	sbuild.label = picklist.Label
 	sbuild.flds, sbuild.scan = &_q.ctx.Fields, sbuild.Scan
 	return sbuild
 }
 
-// Aggregate returns a OrderSelect configured with the given aggregations.
-func (_q *OrderQuery) Aggregate(fns ...AggregateFunc) *OrderSelect {
+// Aggregate returns a PickListSelect configured with the given aggregations.
+func (_q *PickListQuery) Aggregate(fns ...AggregateFunc) *PickListSelect {
 	return _q.Select().Aggregate(fns...)
 }
 
-func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
+func (_q *PickListQuery) prepareQuery(ctx context.Context) error {
 	for _, inter := range _q.inters {
 		if inter == nil {
 			return fmt.Errorf("ent: uninitialized interceptor (forgotten import ent/runtime?)")
@@ -389,7 +390,7 @@ func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
 		}
 	}
 	for _, f := range _q.ctx.Fields {
-		if !order.ValidColumn(f) {
+		if !picklist.ValidColumn(f) {
 			return &ValidationError{Name: f, err: fmt.Errorf("ent: invalid field %q for query", f)}
 		}
 	}
@@ -403,20 +404,27 @@ func (_q *OrderQuery) prepareQuery(ctx context.Context) error {
 	return nil
 }
 
-func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order, error) {
+func (_q *PickListQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*PickList, error) {
 	var (
-		nodes       = []*Order{}
+		nodes       = []*PickList{}
+		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [2]bool{
-			_q.withLines != nil,
-			_q.withPicklist != nil,
+			_q.withOrder != nil,
+			_q.withTasks != nil,
 		}
 	)
+	if _q.withOrder != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, picklist.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
-		return (*Order).scanValues(nil, columns)
+		return (*PickList).scanValues(nil, columns)
 	}
 	_spec.Assign = func(columns []string, values []any) error {
-		node := &Order{config: _q.config}
+		node := &PickList{config: _q.config}
 		nodes = append(nodes, node)
 		node.Edges.loadedTypes = loadedTypes
 		return node.assignValues(columns, values)
@@ -430,25 +438,57 @@ func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order,
 	if len(nodes) == 0 {
 		return nodes, nil
 	}
-	if query := _q.withLines; query != nil {
-		if err := _q.loadLines(ctx, query, nodes,
-			func(n *Order) { n.Edges.Lines = []*OrderLine{} },
-			func(n *Order, e *OrderLine) { n.Edges.Lines = append(n.Edges.Lines, e) }); err != nil {
+	if query := _q.withOrder; query != nil {
+		if err := _q.loadOrder(ctx, query, nodes, nil,
+			func(n *PickList, e *Order) { n.Edges.Order = e }); err != nil {
 			return nil, err
 		}
 	}
-	if query := _q.withPicklist; query != nil {
-		if err := _q.loadPicklist(ctx, query, nodes, nil,
-			func(n *Order, e *PickList) { n.Edges.Picklist = e }); err != nil {
+	if query := _q.withTasks; query != nil {
+		if err := _q.loadTasks(ctx, query, nodes,
+			func(n *PickList) { n.Edges.Tasks = []*PickTask{} },
+			func(n *PickList, e *PickTask) { n.Edges.Tasks = append(n.Edges.Tasks, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *OrderQuery) loadLines(ctx context.Context, query *OrderLineQuery, nodes []*Order, init func(*Order), assign func(*Order, *OrderLine)) error {
+func (_q *PickListQuery) loadOrder(ctx context.Context, query *OrderQuery, nodes []*PickList, init func(*PickList), assign func(*PickList, *Order)) error {
+	ids := make([]int, 0, len(nodes))
+	nodeids := make(map[int][]*PickList)
+	for i := range nodes {
+		if nodes[i].order_picklist == nil {
+			continue
+		}
+		fk := *nodes[i].order_picklist
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(order.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "order_picklist" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (_q *PickListQuery) loadTasks(ctx context.Context, query *PickTaskQuery, nodes []*PickList, init func(*PickList), assign func(*PickList, *PickTask)) error {
 	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Order)
+	nodeids := make(map[int]*PickList)
 	for i := range nodes {
 		fks = append(fks, nodes[i].ID)
 		nodeids[nodes[i].ID] = nodes[i]
@@ -457,56 +497,28 @@ func (_q *OrderQuery) loadLines(ctx context.Context, query *OrderLineQuery, node
 		}
 	}
 	query.withFKs = true
-	query.Where(predicate.OrderLine(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(order.LinesColumn), fks...))
+	query.Where(predicate.PickTask(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(picklist.TasksColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.order_lines
+		fk := n.pick_list_tasks
 		if fk == nil {
-			return fmt.Errorf(`foreign-key "order_lines" is nil for node %v`, n.ID)
+			return fmt.Errorf(`foreign-key "pick_list_tasks" is nil for node %v`, n.ID)
 		}
 		node, ok := nodeids[*fk]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "order_lines" returned %v for node %v`, *fk, n.ID)
-		}
-		assign(node, n)
-	}
-	return nil
-}
-func (_q *OrderQuery) loadPicklist(ctx context.Context, query *PickListQuery, nodes []*Order, init func(*Order), assign func(*Order, *PickList)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[int]*Order)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-	}
-	query.withFKs = true
-	query.Where(predicate.PickList(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(order.PicklistColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
-	if err != nil {
-		return err
-	}
-	for _, n := range neighbors {
-		fk := n.order_picklist
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "order_picklist" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
-		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "order_picklist" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected referenced foreign-key "pick_list_tasks" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}
 	return nil
 }
 
-func (_q *OrderQuery) sqlCount(ctx context.Context) (int, error) {
+func (_q *PickListQuery) sqlCount(ctx context.Context) (int, error) {
 	_spec := _q.querySpec()
 	_spec.Node.Columns = _q.ctx.Fields
 	if len(_q.ctx.Fields) > 0 {
@@ -515,8 +527,8 @@ func (_q *OrderQuery) sqlCount(ctx context.Context) (int, error) {
 	return sqlgraph.CountNodes(ctx, _q.driver, _spec)
 }
 
-func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(order.Table, order.Columns, sqlgraph.NewFieldSpec(order.FieldID, field.TypeInt))
+func (_q *PickListQuery) querySpec() *sqlgraph.QuerySpec {
+	_spec := sqlgraph.NewQuerySpec(picklist.Table, picklist.Columns, sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique
@@ -525,9 +537,9 @@ func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
 	}
 	if fields := _q.ctx.Fields; len(fields) > 0 {
 		_spec.Node.Columns = make([]string, 0, len(fields))
-		_spec.Node.Columns = append(_spec.Node.Columns, order.FieldID)
+		_spec.Node.Columns = append(_spec.Node.Columns, picklist.FieldID)
 		for i := range fields {
-			if fields[i] != order.FieldID {
+			if fields[i] != picklist.FieldID {
 				_spec.Node.Columns = append(_spec.Node.Columns, fields[i])
 			}
 		}
@@ -555,12 +567,12 @@ func (_q *OrderQuery) querySpec() *sqlgraph.QuerySpec {
 	return _spec
 }
 
-func (_q *OrderQuery) sqlQuery(ctx context.Context) *sql.Selector {
+func (_q *PickListQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	builder := sql.Dialect(_q.driver.Dialect())
-	t1 := builder.Table(order.Table)
+	t1 := builder.Table(picklist.Table)
 	columns := _q.ctx.Fields
 	if len(columns) == 0 {
-		columns = order.Columns
+		columns = picklist.Columns
 	}
 	selector := builder.Select(t1.Columns(columns...)...).From(t1)
 	if _q.sql != nil {
@@ -587,28 +599,28 @@ func (_q *OrderQuery) sqlQuery(ctx context.Context) *sql.Selector {
 	return selector
 }
 
-// OrderGroupBy is the group-by builder for Order entities.
-type OrderGroupBy struct {
+// PickListGroupBy is the group-by builder for PickList entities.
+type PickListGroupBy struct {
 	selector
-	build *OrderQuery
+	build *PickListQuery
 }
 
 // Aggregate adds the given aggregation functions to the group-by query.
-func (_g *OrderGroupBy) Aggregate(fns ...AggregateFunc) *OrderGroupBy {
+func (_g *PickListGroupBy) Aggregate(fns ...AggregateFunc) *PickListGroupBy {
 	_g.fns = append(_g.fns, fns...)
 	return _g
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_g *OrderGroupBy) Scan(ctx context.Context, v any) error {
+func (_g *PickListGroupBy) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _g.build.ctx, ent.OpQueryGroupBy)
 	if err := _g.build.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*OrderQuery, *OrderGroupBy](ctx, _g.build, _g, _g.build.inters, v)
+	return scanWithInterceptors[*PickListQuery, *PickListGroupBy](ctx, _g.build, _g, _g.build.inters, v)
 }
 
-func (_g *OrderGroupBy) sqlScan(ctx context.Context, root *OrderQuery, v any) error {
+func (_g *PickListGroupBy) sqlScan(ctx context.Context, root *PickListQuery, v any) error {
 	selector := root.sqlQuery(ctx).Select()
 	aggregation := make([]string, 0, len(_g.fns))
 	for _, fn := range _g.fns {
@@ -635,28 +647,28 @@ func (_g *OrderGroupBy) sqlScan(ctx context.Context, root *OrderQuery, v any) er
 	return sql.ScanSlice(rows, v)
 }
 
-// OrderSelect is the builder for selecting fields of Order entities.
-type OrderSelect struct {
-	*OrderQuery
+// PickListSelect is the builder for selecting fields of PickList entities.
+type PickListSelect struct {
+	*PickListQuery
 	selector
 }
 
 // Aggregate adds the given aggregation functions to the selector query.
-func (_s *OrderSelect) Aggregate(fns ...AggregateFunc) *OrderSelect {
+func (_s *PickListSelect) Aggregate(fns ...AggregateFunc) *PickListSelect {
 	_s.fns = append(_s.fns, fns...)
 	return _s
 }
 
 // Scan applies the selector query and scans the result into the given value.
-func (_s *OrderSelect) Scan(ctx context.Context, v any) error {
+func (_s *PickListSelect) Scan(ctx context.Context, v any) error {
 	ctx = setContextOp(ctx, _s.ctx, ent.OpQuerySelect)
 	if err := _s.prepareQuery(ctx); err != nil {
 		return err
 	}
-	return scanWithInterceptors[*OrderQuery, *OrderSelect](ctx, _s.OrderQuery, _s, _s.inters, v)
+	return scanWithInterceptors[*PickListQuery, *PickListSelect](ctx, _s.PickListQuery, _s, _s.inters, v)
 }
 
-func (_s *OrderSelect) sqlScan(ctx context.Context, root *OrderQuery, v any) error {
+func (_s *PickListSelect) sqlScan(ctx context.Context, root *PickListQuery, v any) error {
 	selector := root.sqlQuery(ctx)
 	aggregation := make([]string, 0, len(_s.fns))
 	for _, fn := range _s.fns {

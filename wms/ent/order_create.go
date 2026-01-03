@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picklist"
 )
 
 // OrderCreate is the builder for creating a Order entity.
@@ -74,6 +75,25 @@ func (_c *OrderCreate) AddLines(v ...*OrderLine) *OrderCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddLineIDs(ids...)
+}
+
+// SetPicklistID sets the "picklist" edge to the PickList entity by ID.
+func (_c *OrderCreate) SetPicklistID(id int) *OrderCreate {
+	_c.mutation.SetPicklistID(id)
+	return _c
+}
+
+// SetNillablePicklistID sets the "picklist" edge to the PickList entity by ID if the given value is not nil.
+func (_c *OrderCreate) SetNillablePicklistID(id *int) *OrderCreate {
+	if id != nil {
+		_c = _c.SetPicklistID(*id)
+	}
+	return _c
+}
+
+// SetPicklist sets the "picklist" edge to the PickList entity.
+func (_c *OrderCreate) SetPicklist(v *PickList) *OrderCreate {
+	return _c.SetPicklistID(v.ID)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -201,6 +221,22 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(orderline.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PicklistIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.PicklistTable,
+			Columns: []string{order.PicklistColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

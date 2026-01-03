@@ -14,6 +14,7 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/predicate"
 )
 
@@ -84,6 +85,21 @@ func (_u *OrderLineUpdate) SetLocation(v *Location) *OrderLineUpdate {
 	return _u.SetLocationID(v.ID)
 }
 
+// AddPickTaskIDs adds the "pick_tasks" edge to the PickTask entity by IDs.
+func (_u *OrderLineUpdate) AddPickTaskIDs(ids ...int) *OrderLineUpdate {
+	_u.mutation.AddPickTaskIDs(ids...)
+	return _u
+}
+
+// AddPickTasks adds the "pick_tasks" edges to the PickTask entity.
+func (_u *OrderLineUpdate) AddPickTasks(v ...*PickTask) *OrderLineUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPickTaskIDs(ids...)
+}
+
 // Mutation returns the OrderLineMutation object of the builder.
 func (_u *OrderLineUpdate) Mutation() *OrderLineMutation {
 	return _u.mutation
@@ -105,6 +121,27 @@ func (_u *OrderLineUpdate) ClearItem() *OrderLineUpdate {
 func (_u *OrderLineUpdate) ClearLocation() *OrderLineUpdate {
 	_u.mutation.ClearLocation()
 	return _u
+}
+
+// ClearPickTasks clears all "pick_tasks" edges to the PickTask entity.
+func (_u *OrderLineUpdate) ClearPickTasks() *OrderLineUpdate {
+	_u.mutation.ClearPickTasks()
+	return _u
+}
+
+// RemovePickTaskIDs removes the "pick_tasks" edge to PickTask entities by IDs.
+func (_u *OrderLineUpdate) RemovePickTaskIDs(ids ...int) *OrderLineUpdate {
+	_u.mutation.RemovePickTaskIDs(ids...)
+	return _u
+}
+
+// RemovePickTasks removes "pick_tasks" edges to PickTask entities.
+func (_u *OrderLineUpdate) RemovePickTasks(v ...*PickTask) *OrderLineUpdate {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePickTaskIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -258,6 +295,51 @@ func (_u *OrderLineUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.PickTasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPickTasksIDs(); len(nodes) > 0 && !_u.mutation.PickTasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PickTasksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{orderline.Label}
@@ -332,6 +414,21 @@ func (_u *OrderLineUpdateOne) SetLocation(v *Location) *OrderLineUpdateOne {
 	return _u.SetLocationID(v.ID)
 }
 
+// AddPickTaskIDs adds the "pick_tasks" edge to the PickTask entity by IDs.
+func (_u *OrderLineUpdateOne) AddPickTaskIDs(ids ...int) *OrderLineUpdateOne {
+	_u.mutation.AddPickTaskIDs(ids...)
+	return _u
+}
+
+// AddPickTasks adds the "pick_tasks" edges to the PickTask entity.
+func (_u *OrderLineUpdateOne) AddPickTasks(v ...*PickTask) *OrderLineUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPickTaskIDs(ids...)
+}
+
 // Mutation returns the OrderLineMutation object of the builder.
 func (_u *OrderLineUpdateOne) Mutation() *OrderLineMutation {
 	return _u.mutation
@@ -353,6 +450,27 @@ func (_u *OrderLineUpdateOne) ClearItem() *OrderLineUpdateOne {
 func (_u *OrderLineUpdateOne) ClearLocation() *OrderLineUpdateOne {
 	_u.mutation.ClearLocation()
 	return _u
+}
+
+// ClearPickTasks clears all "pick_tasks" edges to the PickTask entity.
+func (_u *OrderLineUpdateOne) ClearPickTasks() *OrderLineUpdateOne {
+	_u.mutation.ClearPickTasks()
+	return _u
+}
+
+// RemovePickTaskIDs removes the "pick_tasks" edge to PickTask entities by IDs.
+func (_u *OrderLineUpdateOne) RemovePickTaskIDs(ids ...int) *OrderLineUpdateOne {
+	_u.mutation.RemovePickTaskIDs(ids...)
+	return _u
+}
+
+// RemovePickTasks removes "pick_tasks" edges to PickTask entities.
+func (_u *OrderLineUpdateOne) RemovePickTasks(v ...*PickTask) *OrderLineUpdateOne {
+	ids := make([]int, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePickTaskIDs(ids...)
 }
 
 // Where appends a list predicates to the OrderLineUpdate builder.
@@ -529,6 +647,51 @@ func (_u *OrderLineUpdateOne) sqlSave(ctx context.Context) (_node *OrderLine, er
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(location.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PickTasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPickTasksIDs(); len(nodes) > 0 && !_u.mutation.PickTasksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PickTasksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   orderline.PickTasksTable,
+			Columns: []string{orderline.PickTasksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(picktask.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

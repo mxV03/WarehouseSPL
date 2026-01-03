@@ -116,6 +116,73 @@ var (
 			},
 		},
 	}
+	// PickListsColumns holds the columns for the "pick_lists" table.
+	PickListsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "status", Type: field.TypeString, Default: "CREATED"},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "started_at", Type: field.TypeTime, Nullable: true},
+		{Name: "done_at", Type: field.TypeTime, Nullable: true},
+		{Name: "order_picklist", Type: field.TypeInt, Unique: true},
+	}
+	// PickListsTable holds the schema information for the "pick_lists" table.
+	PickListsTable = &schema.Table{
+		Name:       "pick_lists",
+		Columns:    PickListsColumns,
+		PrimaryKey: []*schema.Column{PickListsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "pick_lists_orders_picklist",
+				Columns:    []*schema.Column{PickListsColumns[5]},
+				RefColumns: []*schema.Column{OrdersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "picklist_order_picklist",
+				Unique:  true,
+				Columns: []*schema.Column{PickListsColumns[5]},
+			},
+		},
+	}
+	// PickTasksColumns holds the columns for the "pick_tasks" table.
+	PickTasksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "quantity", Type: field.TypeInt},
+		{Name: "status", Type: field.TypeString, Default: "OPEN"},
+		{Name: "picked_at", Type: field.TypeTime, Nullable: true},
+		{Name: "bin_id", Type: field.TypeInt, Nullable: true},
+		{Name: "order_line_pick_tasks", Type: field.TypeInt},
+		{Name: "pick_list_tasks", Type: field.TypeInt},
+	}
+	// PickTasksTable holds the schema information for the "pick_tasks" table.
+	PickTasksTable = &schema.Table{
+		Name:       "pick_tasks",
+		Columns:    PickTasksColumns,
+		PrimaryKey: []*schema.Column{PickTasksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "pick_tasks_order_lines_pick_tasks",
+				Columns:    []*schema.Column{PickTasksColumns[5]},
+				RefColumns: []*schema.Column{OrderLinesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "pick_tasks_pick_lists_tasks",
+				Columns:    []*schema.Column{PickTasksColumns[6]},
+				RefColumns: []*schema.Column{PickListsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "picktask_pick_list_tasks_order_line_pick_tasks",
+				Unique:  true,
+				Columns: []*schema.Column{PickTasksColumns[6], PickTasksColumns[5]},
+			},
+		},
+	}
 	// StockMovementsColumns holds the columns for the "stock_movements" table.
 	StockMovementsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -206,6 +273,8 @@ var (
 		LocationsTable,
 		OrdersTable,
 		OrderLinesTable,
+		PickListsTable,
+		PickTasksTable,
 		StockMovementsTable,
 		ZonesTable,
 		BinItemsTable,
@@ -218,6 +287,9 @@ func init() {
 	OrderLinesTable.ForeignKeys[0].RefTable = ItemsTable
 	OrderLinesTable.ForeignKeys[1].RefTable = LocationsTable
 	OrderLinesTable.ForeignKeys[2].RefTable = OrdersTable
+	PickListsTable.ForeignKeys[0].RefTable = OrdersTable
+	PickTasksTable.ForeignKeys[0].RefTable = OrderLinesTable
+	PickTasksTable.ForeignKeys[1].RefTable = PickListsTable
 	StockMovementsTable.ForeignKeys[0].RefTable = ItemsTable
 	StockMovementsTable.ForeignKeys[1].RefTable = LocationsTable
 	ZonesTable.ForeignKeys[0].RefTable = LocationsTable

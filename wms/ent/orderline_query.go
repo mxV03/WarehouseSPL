@@ -4,6 +4,7 @@ package ent
 
 import (
 	"context"
+	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -15,20 +16,22 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/predicate"
 )
 
 // OrderLineQuery is the builder for querying OrderLine entities.
 type OrderLineQuery struct {
 	config
-	ctx          *QueryContext
-	order        []orderline.OrderOption
-	inters       []Interceptor
-	predicates   []predicate.OrderLine
-	withOrder    *OrderQuery
-	withItem     *ItemQuery
-	withLocation *LocationQuery
-	withFKs      bool
+	ctx           *QueryContext
+	order         []orderline.OrderOption
+	inters        []Interceptor
+	predicates    []predicate.OrderLine
+	withOrder     *OrderQuery
+	withItem      *ItemQuery
+	withLocation  *LocationQuery
+	withPickTasks *PickTaskQuery
+	withFKs       bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -124,6 +127,28 @@ func (_q *OrderLineQuery) QueryLocation() *LocationQuery {
 			sqlgraph.From(orderline.Table, orderline.FieldID, selector),
 			sqlgraph.To(location.Table, location.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, orderline.LocationTable, orderline.LocationColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryPickTasks chains the current query on the "pick_tasks" edge.
+func (_q *OrderLineQuery) QueryPickTasks() *PickTaskQuery {
+	query := (&PickTaskClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(orderline.Table, orderline.FieldID, selector),
+			sqlgraph.To(picktask.Table, picktask.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, orderline.PickTasksTable, orderline.PickTasksColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -318,14 +343,15 @@ func (_q *OrderLineQuery) Clone() *OrderLineQuery {
 		return nil
 	}
 	return &OrderLineQuery{
-		config:       _q.config,
-		ctx:          _q.ctx.Clone(),
-		order:        append([]orderline.OrderOption{}, _q.order...),
-		inters:       append([]Interceptor{}, _q.inters...),
-		predicates:   append([]predicate.OrderLine{}, _q.predicates...),
-		withOrder:    _q.withOrder.Clone(),
-		withItem:     _q.withItem.Clone(),
-		withLocation: _q.withLocation.Clone(),
+		config:        _q.config,
+		ctx:           _q.ctx.Clone(),
+		order:         append([]orderline.OrderOption{}, _q.order...),
+		inters:        append([]Interceptor{}, _q.inters...),
+		predicates:    append([]predicate.OrderLine{}, _q.predicates...),
+		withOrder:     _q.withOrder.Clone(),
+		withItem:      _q.withItem.Clone(),
+		withLocation:  _q.withLocation.Clone(),
+		withPickTasks: _q.withPickTasks.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -362,6 +388,17 @@ func (_q *OrderLineQuery) WithLocation(opts ...func(*LocationQuery)) *OrderLineQ
 		opt(query)
 	}
 	_q.withLocation = query
+	return _q
+}
+
+// WithPickTasks tells the query-builder to eager-load the nodes that are connected to
+// the "pick_tasks" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *OrderLineQuery) WithPickTasks(opts ...func(*PickTaskQuery)) *OrderLineQuery {
+	query := (&PickTaskClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPickTasks = query
 	return _q
 }
 
@@ -444,10 +481,11 @@ func (_q *OrderLineQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Or
 		nodes       = []*OrderLine{}
 		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
-		loadedTypes = [3]bool{
+		loadedTypes = [4]bool{
 			_q.withOrder != nil,
 			_q.withItem != nil,
 			_q.withLocation != nil,
+			_q.withPickTasks != nil,
 		}
 	)
 	if _q.withOrder != nil || _q.withItem != nil || _q.withLocation != nil {
@@ -489,6 +527,13 @@ func (_q *OrderLineQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Or
 	if query := _q.withLocation; query != nil {
 		if err := _q.loadLocation(ctx, query, nodes, nil,
 			func(n *OrderLine, e *Location) { n.Edges.Location = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPickTasks; query != nil {
+		if err := _q.loadPickTasks(ctx, query, nodes,
+			func(n *OrderLine) { n.Edges.PickTasks = []*PickTask{} },
+			func(n *OrderLine, e *PickTask) { n.Edges.PickTasks = append(n.Edges.PickTasks, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -588,6 +633,37 @@ func (_q *OrderLineQuery) loadLocation(ctx context.Context, query *LocationQuery
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (_q *OrderLineQuery) loadPickTasks(ctx context.Context, query *PickTaskQuery, nodes []*OrderLine, init func(*OrderLine), assign func(*OrderLine, *PickTask)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*OrderLine)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.PickTask(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(orderline.PickTasksColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.order_line_pick_tasks
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "order_line_pick_tasks" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "order_line_pick_tasks" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

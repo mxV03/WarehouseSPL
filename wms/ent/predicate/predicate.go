@@ -21,6 +21,12 @@ type Order func(*sql.Selector)
 // OrderLine is the predicate function for orderline builders.
 type OrderLine func(*sql.Selector)
 
+// PickList is the predicate function for picklist builders.
+type PickList func(*sql.Selector)
+
+// PickTask is the predicate function for picktask builders.
+type PickTask func(*sql.Selector)
+
 // StockMovement is the predicate function for stockmovement builders.
 type StockMovement func(*sql.Selector)
 

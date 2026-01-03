@@ -20,6 +20,8 @@ const (
 	EdgeItem = "item"
 	// EdgeLocation holds the string denoting the location edge name in mutations.
 	EdgeLocation = "location"
+	// EdgePickTasks holds the string denoting the pick_tasks edge name in mutations.
+	EdgePickTasks = "pick_tasks"
 	// Table holds the table name of the orderline in the database.
 	Table = "order_lines"
 	// OrderTable is the table that holds the order relation/edge.
@@ -43,6 +45,13 @@ const (
 	LocationInverseTable = "locations"
 	// LocationColumn is the table column denoting the location relation/edge.
 	LocationColumn = "location_order_lines"
+	// PickTasksTable is the table that holds the pick_tasks relation/edge.
+	PickTasksTable = "pick_tasks"
+	// PickTasksInverseTable is the table name for the PickTask entity.
+	// It exists in this package in order to avoid circular dependency with the "picktask" package.
+	PickTasksInverseTable = "pick_tasks"
+	// PickTasksColumn is the table column denoting the pick_tasks relation/edge.
+	PickTasksColumn = "order_line_pick_tasks"
 )
 
 // Columns holds all SQL columns for orderline fields.
@@ -112,6 +121,20 @@ func ByLocationField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newLocationStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByPickTasksCount orders the results by pick_tasks count.
+func ByPickTasksCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPickTasksStep(), opts...)
+	}
+}
+
+// ByPickTasks orders the results by pick_tasks terms.
+func ByPickTasks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPickTasksStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newOrderStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -131,5 +154,12 @@ func newLocationStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(LocationInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, LocationTable, LocationColumn),
+	)
+}
+func newPickTasksStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PickTasksInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PickTasksTable, PickTasksColumn),
 	)
 }

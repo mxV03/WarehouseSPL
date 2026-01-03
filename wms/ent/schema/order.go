@@ -33,5 +33,6 @@ func (Order) Fields() []ent.Field {
 func (Order) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("lines", OrderLine.Type),
+		edge.To("picklist", PickList.Type).Unique(),
 	}
 }

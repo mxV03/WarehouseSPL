@@ -10,6 +10,8 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
+	"github.com/mxV03/wms/ent/picklist"
+	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/schema"
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/zone"
@@ -71,6 +73,26 @@ func init() {
 	orderlineDescQuantity := orderlineFields[0].Descriptor()
 	// orderline.QuantityValidator is a validator for the "quantity" field. It is called by the builders before save.
 	orderline.QuantityValidator = orderlineDescQuantity.Validators[0].(func(int) error)
+	picklistFields := schema.PickList{}.Fields()
+	_ = picklistFields
+	// picklistDescStatus is the schema descriptor for status field.
+	picklistDescStatus := picklistFields[0].Descriptor()
+	// picklist.DefaultStatus holds the default value on creation for the status field.
+	picklist.DefaultStatus = picklistDescStatus.Default.(string)
+	// picklistDescCreatedAt is the schema descriptor for created_at field.
+	picklistDescCreatedAt := picklistFields[1].Descriptor()
+	// picklist.DefaultCreatedAt holds the default value on creation for the created_at field.
+	picklist.DefaultCreatedAt = picklistDescCreatedAt.Default.(func() time.Time)
+	picktaskFields := schema.PickTask{}.Fields()
+	_ = picktaskFields
+	// picktaskDescQuantity is the schema descriptor for quantity field.
+	picktaskDescQuantity := picktaskFields[0].Descriptor()
+	// picktask.QuantityValidator is a validator for the "quantity" field. It is called by the builders before save.
+	picktask.QuantityValidator = picktaskDescQuantity.Validators[0].(func(int) error)
+	// picktaskDescStatus is the schema descriptor for status field.
+	picktaskDescStatus := picktaskFields[1].Descriptor()
+	// picktask.DefaultStatus holds the default value on creation for the status field.
+	picktask.DefaultStatus = picktaskDescStatus.Default.(string)
 	stockmovementFields := schema.StockMovement{}.Fields()
 	_ = stockmovementFields
 	// stockmovementDescType is the schema descriptor for type field.

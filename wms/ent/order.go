@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/mxV03/wms/ent/order"
+	"github.com/mxV03/wms/ent/picklist"
 )
 
 // Order is the model entity for the Order schema.
@@ -35,9 +36,11 @@ type Order struct {
 type OrderEdges struct {
 	// Lines holds the value of the lines edge.
 	Lines []*OrderLine `json:"lines,omitempty"`
+	// Picklist holds the value of the picklist edge.
+	Picklist *PickList `json:"picklist,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [2]bool
 }
 
 // LinesOrErr returns the Lines value or an error if the edge
@@ -47,6 +50,17 @@ func (e OrderEdges) LinesOrErr() ([]*OrderLine, error) {
 		return e.Lines, nil
 	}
 	return nil, &NotLoadedError{edge: "lines"}
+}
+
+// PicklistOrErr returns the Picklist value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e OrderEdges) PicklistOrErr() (*PickList, error) {
+	if e.Picklist != nil {
+		return e.Picklist, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: picklist.Label}
+	}
+	return nil, &NotLoadedError{edge: "picklist"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -121,6 +135,11 @@ func (_m *Order) Value(name string) (ent.Value, error) {
 // QueryLines queries the "lines" edge of the Order entity.
 func (_m *Order) QueryLines() *OrderLineQuery {
 	return NewOrderClient(_m.config).QueryLines(_m)
+}
+
+// QueryPicklist queries the "picklist" edge of the Order entity.
+func (_m *Order) QueryPicklist() *PickListQuery {
+	return NewOrderClient(_m.config).QueryPicklist(_m)
 }
 
 // Update returns a builder for updating this Order.
