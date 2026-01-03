@@ -23,6 +23,7 @@ import (
 	"github.com/mxV03/wms/ent/picklist"
 	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -47,6 +48,8 @@ type Client struct {
 	PickTask *PickTaskClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
+	// Tracking is the client for interacting with the Tracking builders.
+	Tracking *TrackingClient
 	// Zone is the client for interacting with the Zone builders.
 	Zone *ZoneClient
 }
@@ -68,6 +71,7 @@ func (c *Client) init() {
 	c.PickList = NewPickListClient(c.config)
 	c.PickTask = NewPickTaskClient(c.config)
 	c.StockMovement = NewStockMovementClient(c.config)
+	c.Tracking = NewTrackingClient(c.config)
 	c.Zone = NewZoneClient(c.config)
 }
 
@@ -169,6 +173,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PickList:      NewPickListClient(cfg),
 		PickTask:      NewPickTaskClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
+		Tracking:      NewTrackingClient(cfg),
 		Zone:          NewZoneClient(cfg),
 	}, nil
 }
@@ -197,6 +202,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PickList:      NewPickListClient(cfg),
 		PickTask:      NewPickTaskClient(cfg),
 		StockMovement: NewStockMovementClient(cfg),
+		Tracking:      NewTrackingClient(cfg),
 		Zone:          NewZoneClient(cfg),
 	}, nil
 }
@@ -228,7 +234,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList, c.PickTask,
-		c.StockMovement, c.Zone,
+		c.StockMovement, c.Tracking, c.Zone,
 	} {
 		n.Use(hooks...)
 	}
@@ -239,7 +245,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList, c.PickTask,
-		c.StockMovement, c.Zone,
+		c.StockMovement, c.Tracking, c.Zone,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -264,6 +270,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.PickTask.mutate(ctx, m)
 	case *StockMovementMutation:
 		return c.StockMovement.mutate(ctx, m)
+	case *TrackingMutation:
+		return c.Tracking.mutate(ctx, m)
 	case *ZoneMutation:
 		return c.Zone.mutate(ctx, m)
 	default:
@@ -963,6 +971,22 @@ func (c *OrderClient) QueryPicklist(_m *Order) *PickListQuery {
 			sqlgraph.From(order.Table, order.FieldID, id),
 			sqlgraph.To(picklist.Table, picklist.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, order.PicklistTable, order.PicklistColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryTracking queries the tracking edge of a Order.
+func (c *OrderClient) QueryTracking(_m *Order) *TrackingQuery {
+	query := (&TrackingClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, id),
+			sqlgraph.To(tracking.Table, tracking.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, order.TrackingTable, order.TrackingColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -1687,6 +1711,155 @@ func (c *StockMovementClient) mutate(ctx context.Context, m *StockMovementMutati
 	}
 }
 
+// TrackingClient is a client for the Tracking schema.
+type TrackingClient struct {
+	config
+}
+
+// NewTrackingClient returns a client for the Tracking from the given config.
+func NewTrackingClient(c config) *TrackingClient {
+	return &TrackingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `tracking.Hooks(f(g(h())))`.
+func (c *TrackingClient) Use(hooks ...Hook) {
+	c.hooks.Tracking = append(c.hooks.Tracking, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `tracking.Intercept(f(g(h())))`.
+func (c *TrackingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Tracking = append(c.inters.Tracking, interceptors...)
+}
+
+// Create returns a builder for creating a Tracking entity.
+func (c *TrackingClient) Create() *TrackingCreate {
+	mutation := newTrackingMutation(c.config, OpCreate)
+	return &TrackingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Tracking entities.
+func (c *TrackingClient) CreateBulk(builders ...*TrackingCreate) *TrackingCreateBulk {
+	return &TrackingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *TrackingClient) MapCreateBulk(slice any, setFunc func(*TrackingCreate, int)) *TrackingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &TrackingCreateBulk{err: fmt.Errorf("calling to TrackingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*TrackingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &TrackingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Tracking.
+func (c *TrackingClient) Update() *TrackingUpdate {
+	mutation := newTrackingMutation(c.config, OpUpdate)
+	return &TrackingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *TrackingClient) UpdateOne(_m *Tracking) *TrackingUpdateOne {
+	mutation := newTrackingMutation(c.config, OpUpdateOne, withTracking(_m))
+	return &TrackingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *TrackingClient) UpdateOneID(id int) *TrackingUpdateOne {
+	mutation := newTrackingMutation(c.config, OpUpdateOne, withTrackingID(id))
+	return &TrackingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Tracking.
+func (c *TrackingClient) Delete() *TrackingDelete {
+	mutation := newTrackingMutation(c.config, OpDelete)
+	return &TrackingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *TrackingClient) DeleteOne(_m *Tracking) *TrackingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *TrackingClient) DeleteOneID(id int) *TrackingDeleteOne {
+	builder := c.Delete().Where(tracking.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &TrackingDeleteOne{builder}
+}
+
+// Query returns a query builder for Tracking.
+func (c *TrackingClient) Query() *TrackingQuery {
+	return &TrackingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeTracking},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Tracking entity by its id.
+func (c *TrackingClient) Get(ctx context.Context, id int) (*Tracking, error) {
+	return c.Query().Where(tracking.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *TrackingClient) GetX(ctx context.Context, id int) *Tracking {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryOrder queries the order edge of a Tracking.
+func (c *TrackingClient) QueryOrder(_m *Tracking) *OrderQuery {
+	query := (&OrderClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(tracking.Table, tracking.FieldID, id),
+			sqlgraph.To(order.Table, order.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, tracking.OrderTable, tracking.OrderColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *TrackingClient) Hooks() []Hook {
+	return c.hooks.Tracking
+}
+
+// Interceptors returns the client interceptors.
+func (c *TrackingClient) Interceptors() []Interceptor {
+	return c.inters.Tracking
+}
+
+func (c *TrackingClient) mutate(ctx context.Context, m *TrackingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&TrackingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&TrackingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&TrackingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&TrackingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Tracking mutation op: %q", m.Op())
+	}
+}
+
 // ZoneClient is a client for the Zone schema.
 type ZoneClient struct {
 	config
@@ -1856,10 +2029,10 @@ func (c *ZoneClient) mutate(ctx context.Context, m *ZoneMutation) (Value, error)
 type (
 	hooks struct {
 		Bin, Item, Location, Order, OrderLine, PickList, PickTask, StockMovement,
-		Zone []ent.Hook
+		Tracking, Zone []ent.Hook
 	}
 	inters struct {
 		Bin, Item, Location, Order, OrderLine, PickList, PickTask, StockMovement,
-		Zone []ent.Interceptor
+		Tracking, Zone []ent.Interceptor
 	}
 )

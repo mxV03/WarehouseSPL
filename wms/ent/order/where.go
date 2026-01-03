@@ -356,6 +356,29 @@ func HasPicklistWith(preds ...predicate.PickList) predicate.Order {
 	})
 }
 
+// HasTracking applies the HasEdge predicate on the "tracking" edge.
+func HasTracking() predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, TrackingTable, TrackingColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasTrackingWith applies the HasEdge predicate on the "tracking" edge with a given conditions (other predicates).
+func HasTrackingWith(preds ...predicate.Tracking) predicate.Order {
+	return predicate.Order(func(s *sql.Selector) {
+		step := newTrackingStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Order) predicate.Order {
 	return predicate.Order(sql.AndPredicates(predicates...))

@@ -28,6 +28,8 @@ type Tx struct {
 	PickTask *PickTaskClient
 	// StockMovement is the client for interacting with the StockMovement builders.
 	StockMovement *StockMovementClient
+	// Tracking is the client for interacting with the Tracking builders.
+	Tracking *TrackingClient
 	// Zone is the client for interacting with the Zone builders.
 	Zone *ZoneClient
 
@@ -169,6 +171,7 @@ func (tx *Tx) init() {
 	tx.PickList = NewPickListClient(tx.config)
 	tx.PickTask = NewPickTaskClient(tx.config)
 	tx.StockMovement = NewStockMovementClient(tx.config)
+	tx.Tracking = NewTrackingClient(tx.config)
 	tx.Zone = NewZoneClient(tx.config)
 }
 

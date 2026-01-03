@@ -213,6 +213,37 @@ var (
 			},
 		},
 	}
+	// TrackingsColumns holds the columns for the "trackings" table.
+	TrackingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "tracking_id", Type: field.TypeString},
+		{Name: "tracking_url", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "carrier", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "update_at", Type: field.TypeTime},
+		{Name: "order_tracking", Type: field.TypeInt, Unique: true},
+	}
+	// TrackingsTable holds the schema information for the "trackings" table.
+	TrackingsTable = &schema.Table{
+		Name:       "trackings",
+		Columns:    TrackingsColumns,
+		PrimaryKey: []*schema.Column{TrackingsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "trackings_orders_tracking",
+				Columns:    []*schema.Column{TrackingsColumns[6]},
+				RefColumns: []*schema.Column{OrdersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "tracking_order_tracking",
+				Unique:  true,
+				Columns: []*schema.Column{TrackingsColumns[6]},
+			},
+		},
+	}
 	// ZonesColumns holds the columns for the "zones" table.
 	ZonesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -276,6 +307,7 @@ var (
 		PickListsTable,
 		PickTasksTable,
 		StockMovementsTable,
+		TrackingsTable,
 		ZonesTable,
 		BinItemsTable,
 	}
@@ -292,6 +324,7 @@ func init() {
 	PickTasksTable.ForeignKeys[1].RefTable = PickListsTable
 	StockMovementsTable.ForeignKeys[0].RefTable = ItemsTable
 	StockMovementsTable.ForeignKeys[1].RefTable = LocationsTable
+	TrackingsTable.ForeignKeys[0].RefTable = OrdersTable
 	ZonesTable.ForeignKeys[0].RefTable = LocationsTable
 	BinItemsTable.ForeignKeys[0].RefTable = BinsTable
 	BinItemsTable.ForeignKeys[1].RefTable = ItemsTable

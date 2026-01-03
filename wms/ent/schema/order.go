@@ -34,5 +34,6 @@ func (Order) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("lines", OrderLine.Type),
 		edge.To("picklist", PickList.Type).Unique(),
+		edge.To("tracking", Tracking.Type).Unique(),
 	}
 }

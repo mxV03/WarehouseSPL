@@ -13,6 +13,7 @@ import (
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/picklist"
+	"github.com/mxV03/wms/ent/tracking"
 )
 
 // OrderCreate is the builder for creating a Order entity.
@@ -94,6 +95,25 @@ func (_c *OrderCreate) SetNillablePicklistID(id *int) *OrderCreate {
 // SetPicklist sets the "picklist" edge to the PickList entity.
 func (_c *OrderCreate) SetPicklist(v *PickList) *OrderCreate {
 	return _c.SetPicklistID(v.ID)
+}
+
+// SetTrackingID sets the "tracking" edge to the Tracking entity by ID.
+func (_c *OrderCreate) SetTrackingID(id int) *OrderCreate {
+	_c.mutation.SetTrackingID(id)
+	return _c
+}
+
+// SetNillableTrackingID sets the "tracking" edge to the Tracking entity by ID if the given value is not nil.
+func (_c *OrderCreate) SetNillableTrackingID(id *int) *OrderCreate {
+	if id != nil {
+		_c = _c.SetTrackingID(*id)
+	}
+	return _c
+}
+
+// SetTracking sets the "tracking" edge to the Tracking entity.
+func (_c *OrderCreate) SetTracking(v *Tracking) *OrderCreate {
+	return _c.SetTrackingID(v.ID)
 }
 
 // Mutation returns the OrderMutation object of the builder.
@@ -237,6 +257,22 @@ func (_c *OrderCreate) createSpec() (*Order, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.TrackingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.TrackingTable,
+			Columns: []string{order.TrackingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tracking.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

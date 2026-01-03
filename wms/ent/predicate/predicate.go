@@ -30,5 +30,8 @@ type PickTask func(*sql.Selector)
 // StockMovement is the predicate function for stockmovement builders.
 type StockMovement func(*sql.Selector)
 
+// Tracking is the predicate function for tracking builders.
+type Tracking func(*sql.Selector)
+
 // Zone is the predicate function for zone builders.
 type Zone func(*sql.Selector)

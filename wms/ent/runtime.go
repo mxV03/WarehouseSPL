@@ -14,6 +14,7 @@ import (
 	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/schema"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -107,6 +108,30 @@ func init() {
 	stockmovementDescCreatedAt := stockmovementFields[2].Descriptor()
 	// stockmovement.DefaultCreatedAt holds the default value on creation for the created_at field.
 	stockmovement.DefaultCreatedAt = stockmovementDescCreatedAt.Default.(func() time.Time)
+	trackingFields := schema.Tracking{}.Fields()
+	_ = trackingFields
+	// trackingDescTrackingID is the schema descriptor for tracking_id field.
+	trackingDescTrackingID := trackingFields[0].Descriptor()
+	// tracking.TrackingIDValidator is a validator for the "tracking_id" field. It is called by the builders before save.
+	tracking.TrackingIDValidator = trackingDescTrackingID.Validators[0].(func(string) error)
+	// trackingDescTrackingURL is the schema descriptor for tracking_url field.
+	trackingDescTrackingURL := trackingFields[1].Descriptor()
+	// tracking.DefaultTrackingURL holds the default value on creation for the tracking_url field.
+	tracking.DefaultTrackingURL = trackingDescTrackingURL.Default.(string)
+	// trackingDescCarrier is the schema descriptor for carrier field.
+	trackingDescCarrier := trackingFields[2].Descriptor()
+	// tracking.DefaultCarrier holds the default value on creation for the carrier field.
+	tracking.DefaultCarrier = trackingDescCarrier.Default.(string)
+	// trackingDescCreatedAt is the schema descriptor for created_at field.
+	trackingDescCreatedAt := trackingFields[3].Descriptor()
+	// tracking.DefaultCreatedAt holds the default value on creation for the created_at field.
+	tracking.DefaultCreatedAt = trackingDescCreatedAt.Default.(func() time.Time)
+	// trackingDescUpdateAt is the schema descriptor for update_at field.
+	trackingDescUpdateAt := trackingFields[4].Descriptor()
+	// tracking.DefaultUpdateAt holds the default value on creation for the update_at field.
+	tracking.DefaultUpdateAt = trackingDescUpdateAt.Default.(func() time.Time)
+	// tracking.UpdateDefaultUpdateAt holds the default value on update for the update_at field.
+	tracking.UpdateDefaultUpdateAt = trackingDescUpdateAt.UpdateDefault.(func() time.Time)
 	zoneFields := schema.Zone{}.Fields()
 	_ = zoneFields
 	// zoneDescCode is the schema descriptor for code field.

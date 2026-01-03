@@ -15,6 +15,7 @@ import (
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/picklist"
 	"github.com/mxV03/wms/ent/predicate"
+	"github.com/mxV03/wms/ent/tracking"
 )
 
 // OrderUpdate is the builder for updating Order entities.
@@ -120,6 +121,25 @@ func (_u *OrderUpdate) SetPicklist(v *PickList) *OrderUpdate {
 	return _u.SetPicklistID(v.ID)
 }
 
+// SetTrackingID sets the "tracking" edge to the Tracking entity by ID.
+func (_u *OrderUpdate) SetTrackingID(id int) *OrderUpdate {
+	_u.mutation.SetTrackingID(id)
+	return _u
+}
+
+// SetNillableTrackingID sets the "tracking" edge to the Tracking entity by ID if the given value is not nil.
+func (_u *OrderUpdate) SetNillableTrackingID(id *int) *OrderUpdate {
+	if id != nil {
+		_u = _u.SetTrackingID(*id)
+	}
+	return _u
+}
+
+// SetTracking sets the "tracking" edge to the Tracking entity.
+func (_u *OrderUpdate) SetTracking(v *Tracking) *OrderUpdate {
+	return _u.SetTrackingID(v.ID)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdate) Mutation() *OrderMutation {
 	return _u.mutation
@@ -149,6 +169,12 @@ func (_u *OrderUpdate) RemoveLines(v ...*OrderLine) *OrderUpdate {
 // ClearPicklist clears the "picklist" edge to the PickList entity.
 func (_u *OrderUpdate) ClearPicklist() *OrderUpdate {
 	_u.mutation.ClearPicklist()
+	return _u
+}
+
+// ClearTracking clears the "tracking" edge to the Tracking entity.
+func (_u *OrderUpdate) ClearTracking() *OrderUpdate {
+	_u.mutation.ClearTracking()
 	return _u
 }
 
@@ -297,6 +323,35 @@ func (_u *OrderUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.TrackingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.TrackingTable,
+			Columns: []string{order.TrackingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tracking.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TrackingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.TrackingTable,
+			Columns: []string{order.TrackingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tracking.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{order.Label}
@@ -407,6 +462,25 @@ func (_u *OrderUpdateOne) SetPicklist(v *PickList) *OrderUpdateOne {
 	return _u.SetPicklistID(v.ID)
 }
 
+// SetTrackingID sets the "tracking" edge to the Tracking entity by ID.
+func (_u *OrderUpdateOne) SetTrackingID(id int) *OrderUpdateOne {
+	_u.mutation.SetTrackingID(id)
+	return _u
+}
+
+// SetNillableTrackingID sets the "tracking" edge to the Tracking entity by ID if the given value is not nil.
+func (_u *OrderUpdateOne) SetNillableTrackingID(id *int) *OrderUpdateOne {
+	if id != nil {
+		_u = _u.SetTrackingID(*id)
+	}
+	return _u
+}
+
+// SetTracking sets the "tracking" edge to the Tracking entity.
+func (_u *OrderUpdateOne) SetTracking(v *Tracking) *OrderUpdateOne {
+	return _u.SetTrackingID(v.ID)
+}
+
 // Mutation returns the OrderMutation object of the builder.
 func (_u *OrderUpdateOne) Mutation() *OrderMutation {
 	return _u.mutation
@@ -436,6 +510,12 @@ func (_u *OrderUpdateOne) RemoveLines(v ...*OrderLine) *OrderUpdateOne {
 // ClearPicklist clears the "picklist" edge to the PickList entity.
 func (_u *OrderUpdateOne) ClearPicklist() *OrderUpdateOne {
 	_u.mutation.ClearPicklist()
+	return _u
+}
+
+// ClearTracking clears the "tracking" edge to the Tracking entity.
+func (_u *OrderUpdateOne) ClearTracking() *OrderUpdateOne {
+	_u.mutation.ClearTracking()
 	return _u
 }
 
@@ -607,6 +687,35 @@ func (_u *OrderUpdateOne) sqlSave(ctx context.Context) (_node *Order, err error)
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(picklist.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.TrackingCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.TrackingTable,
+			Columns: []string{order.TrackingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tracking.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.TrackingIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   order.TrackingTable,
+			Columns: []string{order.TrackingColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(tracking.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

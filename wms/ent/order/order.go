@@ -26,6 +26,8 @@ const (
 	EdgeLines = "lines"
 	// EdgePicklist holds the string denoting the picklist edge name in mutations.
 	EdgePicklist = "picklist"
+	// EdgeTracking holds the string denoting the tracking edge name in mutations.
+	EdgeTracking = "tracking"
 	// Table holds the table name of the order in the database.
 	Table = "orders"
 	// LinesTable is the table that holds the lines relation/edge.
@@ -42,6 +44,13 @@ const (
 	PicklistInverseTable = "pick_lists"
 	// PicklistColumn is the table column denoting the picklist relation/edge.
 	PicklistColumn = "order_picklist"
+	// TrackingTable is the table that holds the tracking relation/edge.
+	TrackingTable = "trackings"
+	// TrackingInverseTable is the table name for the Tracking entity.
+	// It exists in this package in order to avoid circular dependency with the "tracking" package.
+	TrackingInverseTable = "trackings"
+	// TrackingColumn is the table column denoting the tracking relation/edge.
+	TrackingColumn = "order_tracking"
 )
 
 // Columns holds all SQL columns for order fields.
@@ -124,6 +133,13 @@ func ByPicklistField(field string, opts ...sql.OrderTermOption) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newPicklistStep(), sql.OrderByField(field, opts...))
 	}
 }
+
+// ByTrackingField orders the results by tracking field.
+func ByTrackingField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newTrackingStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newLinesStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -136,5 +152,12 @@ func newPicklistStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(PicklistInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2O, false, PicklistTable, PicklistColumn),
+	)
+}
+func newTrackingStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(TrackingInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, TrackingTable, TrackingColumn),
 	)
 }

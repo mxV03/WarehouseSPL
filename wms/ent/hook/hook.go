@@ -105,6 +105,18 @@ func (f StockMovementFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.StockMovementMutation", m)
 }
 
+// The TrackingFunc type is an adapter to allow the use of ordinary
+// function as Tracking mutator.
+type TrackingFunc func(context.Context, *ent.TrackingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f TrackingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.TrackingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.TrackingMutation", m)
+}
+
 // The ZoneFunc type is an adapter to allow the use of ordinary
 // function as Zone mutator.
 type ZoneFunc func(context.Context, *ent.ZoneMutation) (ent.Value, error)

@@ -20,6 +20,7 @@ import (
 	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -40,6 +41,7 @@ const (
 	TypePickList      = "PickList"
 	TypePickTask      = "PickTask"
 	TypeStockMovement = "StockMovement"
+	TypeTracking      = "Tracking"
 	TypeZone          = "Zone"
 )
 
@@ -2109,6 +2111,8 @@ type OrderMutation struct {
 	clearedlines    bool
 	picklist        *int
 	clearedpicklist bool
+	tracking        *int
+	clearedtracking bool
 	done            bool
 	oldValue        func(context.Context) (*Order, error)
 	predicates      []predicate.Order
@@ -2449,6 +2453,45 @@ func (m *OrderMutation) ResetPicklist() {
 	m.clearedpicklist = false
 }
 
+// SetTrackingID sets the "tracking" edge to the Tracking entity by id.
+func (m *OrderMutation) SetTrackingID(id int) {
+	m.tracking = &id
+}
+
+// ClearTracking clears the "tracking" edge to the Tracking entity.
+func (m *OrderMutation) ClearTracking() {
+	m.clearedtracking = true
+}
+
+// TrackingCleared reports if the "tracking" edge to the Tracking entity was cleared.
+func (m *OrderMutation) TrackingCleared() bool {
+	return m.clearedtracking
+}
+
+// TrackingID returns the "tracking" edge ID in the mutation.
+func (m *OrderMutation) TrackingID() (id int, exists bool) {
+	if m.tracking != nil {
+		return *m.tracking, true
+	}
+	return
+}
+
+// TrackingIDs returns the "tracking" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// TrackingID instead. It exists only for internal usage by the builders.
+func (m *OrderMutation) TrackingIDs() (ids []int) {
+	if id := m.tracking; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetTracking resets all changes to the "tracking" edge.
+func (m *OrderMutation) ResetTracking() {
+	m.tracking = nil
+	m.clearedtracking = false
+}
+
 // Where appends a list predicates to the OrderMutation builder.
 func (m *OrderMutation) Where(ps ...predicate.Order) {
 	m.predicates = append(m.predicates, ps...)
@@ -2633,12 +2676,15 @@ func (m *OrderMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *OrderMutation) AddedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.lines != nil {
 		edges = append(edges, order.EdgeLines)
 	}
 	if m.picklist != nil {
 		edges = append(edges, order.EdgePicklist)
+	}
+	if m.tracking != nil {
+		edges = append(edges, order.EdgeTracking)
 	}
 	return edges
 }
@@ -2657,13 +2703,17 @@ func (m *OrderMutation) AddedIDs(name string) []ent.Value {
 		if id := m.picklist; id != nil {
 			return []ent.Value{*id}
 		}
+	case order.EdgeTracking:
+		if id := m.tracking; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *OrderMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.removedlines != nil {
 		edges = append(edges, order.EdgeLines)
 	}
@@ -2686,12 +2736,15 @@ func (m *OrderMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *OrderMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 2)
+	edges := make([]string, 0, 3)
 	if m.clearedlines {
 		edges = append(edges, order.EdgeLines)
 	}
 	if m.clearedpicklist {
 		edges = append(edges, order.EdgePicklist)
+	}
+	if m.clearedtracking {
+		edges = append(edges, order.EdgeTracking)
 	}
 	return edges
 }
@@ -2704,6 +2757,8 @@ func (m *OrderMutation) EdgeCleared(name string) bool {
 		return m.clearedlines
 	case order.EdgePicklist:
 		return m.clearedpicklist
+	case order.EdgeTracking:
+		return m.clearedtracking
 	}
 	return false
 }
@@ -2714,6 +2769,9 @@ func (m *OrderMutation) ClearEdge(name string) error {
 	switch name {
 	case order.EdgePicklist:
 		m.ClearPicklist()
+		return nil
+	case order.EdgeTracking:
+		m.ClearTracking()
 		return nil
 	}
 	return fmt.Errorf("unknown Order unique edge %s", name)
@@ -2728,6 +2786,9 @@ func (m *OrderMutation) ResetEdge(name string) error {
 		return nil
 	case order.EdgePicklist:
 		m.ResetPicklist()
+		return nil
+	case order.EdgeTracking:
+		m.ResetTracking()
 		return nil
 	}
 	return fmt.Errorf("unknown Order edge %s", name)
@@ -5441,6 +5502,656 @@ func (m *StockMovementMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown StockMovement edge %s", name)
+}
+
+// TrackingMutation represents an operation that mutates the Tracking nodes in the graph.
+type TrackingMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int
+	tracking_id   *string
+	tracking_url  *string
+	carrier       *string
+	created_at    *time.Time
+	update_at     *time.Time
+	clearedFields map[string]struct{}
+	_order        *int
+	cleared_order bool
+	done          bool
+	oldValue      func(context.Context) (*Tracking, error)
+	predicates    []predicate.Tracking
+}
+
+var _ ent.Mutation = (*TrackingMutation)(nil)
+
+// trackingOption allows management of the mutation configuration using functional options.
+type trackingOption func(*TrackingMutation)
+
+// newTrackingMutation creates new mutation for the Tracking entity.
+func newTrackingMutation(c config, op Op, opts ...trackingOption) *TrackingMutation {
+	m := &TrackingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeTracking,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withTrackingID sets the ID field of the mutation.
+func withTrackingID(id int) trackingOption {
+	return func(m *TrackingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Tracking
+		)
+		m.oldValue = func(ctx context.Context) (*Tracking, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Tracking.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withTracking sets the old Tracking of the mutation.
+func withTracking(node *Tracking) trackingOption {
+	return func(m *TrackingMutation) {
+		m.oldValue = func(context.Context) (*Tracking, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m TrackingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m TrackingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *TrackingMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *TrackingMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Tracking.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetTrackingID sets the "tracking_id" field.
+func (m *TrackingMutation) SetTrackingID(s string) {
+	m.tracking_id = &s
+}
+
+// TrackingID returns the value of the "tracking_id" field in the mutation.
+func (m *TrackingMutation) TrackingID() (r string, exists bool) {
+	v := m.tracking_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrackingID returns the old "tracking_id" field's value of the Tracking entity.
+// If the Tracking object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TrackingMutation) OldTrackingID(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrackingID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrackingID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrackingID: %w", err)
+	}
+	return oldValue.TrackingID, nil
+}
+
+// ResetTrackingID resets all changes to the "tracking_id" field.
+func (m *TrackingMutation) ResetTrackingID() {
+	m.tracking_id = nil
+}
+
+// SetTrackingURL sets the "tracking_url" field.
+func (m *TrackingMutation) SetTrackingURL(s string) {
+	m.tracking_url = &s
+}
+
+// TrackingURL returns the value of the "tracking_url" field in the mutation.
+func (m *TrackingMutation) TrackingURL() (r string, exists bool) {
+	v := m.tracking_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTrackingURL returns the old "tracking_url" field's value of the Tracking entity.
+// If the Tracking object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TrackingMutation) OldTrackingURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTrackingURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTrackingURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTrackingURL: %w", err)
+	}
+	return oldValue.TrackingURL, nil
+}
+
+// ClearTrackingURL clears the value of the "tracking_url" field.
+func (m *TrackingMutation) ClearTrackingURL() {
+	m.tracking_url = nil
+	m.clearedFields[tracking.FieldTrackingURL] = struct{}{}
+}
+
+// TrackingURLCleared returns if the "tracking_url" field was cleared in this mutation.
+func (m *TrackingMutation) TrackingURLCleared() bool {
+	_, ok := m.clearedFields[tracking.FieldTrackingURL]
+	return ok
+}
+
+// ResetTrackingURL resets all changes to the "tracking_url" field.
+func (m *TrackingMutation) ResetTrackingURL() {
+	m.tracking_url = nil
+	delete(m.clearedFields, tracking.FieldTrackingURL)
+}
+
+// SetCarrier sets the "carrier" field.
+func (m *TrackingMutation) SetCarrier(s string) {
+	m.carrier = &s
+}
+
+// Carrier returns the value of the "carrier" field in the mutation.
+func (m *TrackingMutation) Carrier() (r string, exists bool) {
+	v := m.carrier
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCarrier returns the old "carrier" field's value of the Tracking entity.
+// If the Tracking object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TrackingMutation) OldCarrier(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCarrier is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCarrier requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCarrier: %w", err)
+	}
+	return oldValue.Carrier, nil
+}
+
+// ClearCarrier clears the value of the "carrier" field.
+func (m *TrackingMutation) ClearCarrier() {
+	m.carrier = nil
+	m.clearedFields[tracking.FieldCarrier] = struct{}{}
+}
+
+// CarrierCleared returns if the "carrier" field was cleared in this mutation.
+func (m *TrackingMutation) CarrierCleared() bool {
+	_, ok := m.clearedFields[tracking.FieldCarrier]
+	return ok
+}
+
+// ResetCarrier resets all changes to the "carrier" field.
+func (m *TrackingMutation) ResetCarrier() {
+	m.carrier = nil
+	delete(m.clearedFields, tracking.FieldCarrier)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *TrackingMutation) SetCreatedAt(t time.Time) {
+	m.created_at = &t
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *TrackingMutation) CreatedAt() (r time.Time, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the Tracking entity.
+// If the Tracking object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TrackingMutation) OldCreatedAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *TrackingMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdateAt sets the "update_at" field.
+func (m *TrackingMutation) SetUpdateAt(t time.Time) {
+	m.update_at = &t
+}
+
+// UpdateAt returns the value of the "update_at" field in the mutation.
+func (m *TrackingMutation) UpdateAt() (r time.Time, exists bool) {
+	v := m.update_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdateAt returns the old "update_at" field's value of the Tracking entity.
+// If the Tracking object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TrackingMutation) OldUpdateAt(ctx context.Context) (v time.Time, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdateAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdateAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdateAt: %w", err)
+	}
+	return oldValue.UpdateAt, nil
+}
+
+// ResetUpdateAt resets all changes to the "update_at" field.
+func (m *TrackingMutation) ResetUpdateAt() {
+	m.update_at = nil
+}
+
+// SetOrderID sets the "order" edge to the Order entity by id.
+func (m *TrackingMutation) SetOrderID(id int) {
+	m._order = &id
+}
+
+// ClearOrder clears the "order" edge to the Order entity.
+func (m *TrackingMutation) ClearOrder() {
+	m.cleared_order = true
+}
+
+// OrderCleared reports if the "order" edge to the Order entity was cleared.
+func (m *TrackingMutation) OrderCleared() bool {
+	return m.cleared_order
+}
+
+// OrderID returns the "order" edge ID in the mutation.
+func (m *TrackingMutation) OrderID() (id int, exists bool) {
+	if m._order != nil {
+		return *m._order, true
+	}
+	return
+}
+
+// OrderIDs returns the "order" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// OrderID instead. It exists only for internal usage by the builders.
+func (m *TrackingMutation) OrderIDs() (ids []int) {
+	if id := m._order; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetOrder resets all changes to the "order" edge.
+func (m *TrackingMutation) ResetOrder() {
+	m._order = nil
+	m.cleared_order = false
+}
+
+// Where appends a list predicates to the TrackingMutation builder.
+func (m *TrackingMutation) Where(ps ...predicate.Tracking) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the TrackingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *TrackingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Tracking, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *TrackingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *TrackingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Tracking).
+func (m *TrackingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *TrackingMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.tracking_id != nil {
+		fields = append(fields, tracking.FieldTrackingID)
+	}
+	if m.tracking_url != nil {
+		fields = append(fields, tracking.FieldTrackingURL)
+	}
+	if m.carrier != nil {
+		fields = append(fields, tracking.FieldCarrier)
+	}
+	if m.created_at != nil {
+		fields = append(fields, tracking.FieldCreatedAt)
+	}
+	if m.update_at != nil {
+		fields = append(fields, tracking.FieldUpdateAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *TrackingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case tracking.FieldTrackingID:
+		return m.TrackingID()
+	case tracking.FieldTrackingURL:
+		return m.TrackingURL()
+	case tracking.FieldCarrier:
+		return m.Carrier()
+	case tracking.FieldCreatedAt:
+		return m.CreatedAt()
+	case tracking.FieldUpdateAt:
+		return m.UpdateAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *TrackingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case tracking.FieldTrackingID:
+		return m.OldTrackingID(ctx)
+	case tracking.FieldTrackingURL:
+		return m.OldTrackingURL(ctx)
+	case tracking.FieldCarrier:
+		return m.OldCarrier(ctx)
+	case tracking.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case tracking.FieldUpdateAt:
+		return m.OldUpdateAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown Tracking field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TrackingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case tracking.FieldTrackingID:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrackingID(v)
+		return nil
+	case tracking.FieldTrackingURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTrackingURL(v)
+		return nil
+	case tracking.FieldCarrier:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCarrier(v)
+		return nil
+	case tracking.FieldCreatedAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case tracking.FieldUpdateAt:
+		v, ok := value.(time.Time)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdateAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Tracking field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *TrackingMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *TrackingMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *TrackingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Tracking numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *TrackingMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(tracking.FieldTrackingURL) {
+		fields = append(fields, tracking.FieldTrackingURL)
+	}
+	if m.FieldCleared(tracking.FieldCarrier) {
+		fields = append(fields, tracking.FieldCarrier)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *TrackingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *TrackingMutation) ClearField(name string) error {
+	switch name {
+	case tracking.FieldTrackingURL:
+		m.ClearTrackingURL()
+		return nil
+	case tracking.FieldCarrier:
+		m.ClearCarrier()
+		return nil
+	}
+	return fmt.Errorf("unknown Tracking nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *TrackingMutation) ResetField(name string) error {
+	switch name {
+	case tracking.FieldTrackingID:
+		m.ResetTrackingID()
+		return nil
+	case tracking.FieldTrackingURL:
+		m.ResetTrackingURL()
+		return nil
+	case tracking.FieldCarrier:
+		m.ResetCarrier()
+		return nil
+	case tracking.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case tracking.FieldUpdateAt:
+		m.ResetUpdateAt()
+		return nil
+	}
+	return fmt.Errorf("unknown Tracking field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *TrackingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m._order != nil {
+		edges = append(edges, tracking.EdgeOrder)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *TrackingMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case tracking.EdgeOrder:
+		if id := m._order; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *TrackingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *TrackingMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *TrackingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.cleared_order {
+		edges = append(edges, tracking.EdgeOrder)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *TrackingMutation) EdgeCleared(name string) bool {
+	switch name {
+	case tracking.EdgeOrder:
+		return m.cleared_order
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *TrackingMutation) ClearEdge(name string) error {
+	switch name {
+	case tracking.EdgeOrder:
+		m.ClearOrder()
+		return nil
+	}
+	return fmt.Errorf("unknown Tracking unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *TrackingMutation) ResetEdge(name string) error {
+	switch name {
+	case tracking.EdgeOrder:
+		m.ResetOrder()
+		return nil
+	}
+	return fmt.Errorf("unknown Tracking edge %s", name)
 }
 
 // ZoneMutation represents an operation that mutates the Zone nodes in the graph.

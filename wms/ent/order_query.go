@@ -16,6 +16,7 @@ import (
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/picklist"
 	"github.com/mxV03/wms/ent/predicate"
+	"github.com/mxV03/wms/ent/tracking"
 )
 
 // OrderQuery is the builder for querying Order entities.
@@ -27,6 +28,7 @@ type OrderQuery struct {
 	predicates   []predicate.Order
 	withLines    *OrderLineQuery
 	withPicklist *PickListQuery
+	withTracking *TrackingQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -100,6 +102,28 @@ func (_q *OrderQuery) QueryPicklist() *PickListQuery {
 			sqlgraph.From(order.Table, order.FieldID, selector),
 			sqlgraph.To(picklist.Table, picklist.FieldID),
 			sqlgraph.Edge(sqlgraph.O2O, false, order.PicklistTable, order.PicklistColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryTracking chains the current query on the "tracking" edge.
+func (_q *OrderQuery) QueryTracking() *TrackingQuery {
+	query := (&TrackingClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(order.Table, order.FieldID, selector),
+			sqlgraph.To(tracking.Table, tracking.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, order.TrackingTable, order.TrackingColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -301,6 +325,7 @@ func (_q *OrderQuery) Clone() *OrderQuery {
 		predicates:   append([]predicate.Order{}, _q.predicates...),
 		withLines:    _q.withLines.Clone(),
 		withPicklist: _q.withPicklist.Clone(),
+		withTracking: _q.withTracking.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -326,6 +351,17 @@ func (_q *OrderQuery) WithPicklist(opts ...func(*PickListQuery)) *OrderQuery {
 		opt(query)
 	}
 	_q.withPicklist = query
+	return _q
+}
+
+// WithTracking tells the query-builder to eager-load the nodes that are connected to
+// the "tracking" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *OrderQuery) WithTracking(opts ...func(*TrackingQuery)) *OrderQuery {
+	query := (&TrackingClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withTracking = query
 	return _q
 }
 
@@ -407,9 +443,10 @@ func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order,
 	var (
 		nodes       = []*Order{}
 		_spec       = _q.querySpec()
-		loadedTypes = [2]bool{
+		loadedTypes = [3]bool{
 			_q.withLines != nil,
 			_q.withPicklist != nil,
+			_q.withTracking != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -440,6 +477,12 @@ func (_q *OrderQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Order,
 	if query := _q.withPicklist; query != nil {
 		if err := _q.loadPicklist(ctx, query, nodes, nil,
 			func(n *Order, e *PickList) { n.Edges.Picklist = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withTracking; query != nil {
+		if err := _q.loadTracking(ctx, query, nodes, nil,
+			func(n *Order, e *Tracking) { n.Edges.Tracking = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -500,6 +543,34 @@ func (_q *OrderQuery) loadPicklist(ctx context.Context, query *PickListQuery, no
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "order_picklist" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *OrderQuery) loadTracking(ctx context.Context, query *TrackingQuery, nodes []*Order, init func(*Order), assign func(*Order, *Tracking)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Order)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.Tracking(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(order.TrackingColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.order_tracking
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "order_tracking" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "order_tracking" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

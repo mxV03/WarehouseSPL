@@ -11,6 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"github.com/mxV03/wms/ent/order"
 	"github.com/mxV03/wms/ent/picklist"
+	"github.com/mxV03/wms/ent/tracking"
 )
 
 // Order is the model entity for the Order schema.
@@ -38,9 +39,11 @@ type OrderEdges struct {
 	Lines []*OrderLine `json:"lines,omitempty"`
 	// Picklist holds the value of the picklist edge.
 	Picklist *PickList `json:"picklist,omitempty"`
+	// Tracking holds the value of the tracking edge.
+	Tracking *Tracking `json:"tracking,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [2]bool
+	loadedTypes [3]bool
 }
 
 // LinesOrErr returns the Lines value or an error if the edge
@@ -61,6 +64,17 @@ func (e OrderEdges) PicklistOrErr() (*PickList, error) {
 		return nil, &NotFoundError{label: picklist.Label}
 	}
 	return nil, &NotLoadedError{edge: "picklist"}
+}
+
+// TrackingOrErr returns the Tracking value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e OrderEdges) TrackingOrErr() (*Tracking, error) {
+	if e.Tracking != nil {
+		return e.Tracking, nil
+	} else if e.loadedTypes[2] {
+		return nil, &NotFoundError{label: tracking.Label}
+	}
+	return nil, &NotLoadedError{edge: "tracking"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -140,6 +154,11 @@ func (_m *Order) QueryLines() *OrderLineQuery {
 // QueryPicklist queries the "picklist" edge of the Order entity.
 func (_m *Order) QueryPicklist() *PickListQuery {
 	return NewOrderClient(_m.config).QueryPicklist(_m)
+}
+
+// QueryTracking queries the "tracking" edge of the Order entity.
+func (_m *Order) QueryTracking() *TrackingQuery {
+	return NewOrderClient(_m.config).QueryTracking(_m)
 }
 
 // Update returns a builder for updating this Order.

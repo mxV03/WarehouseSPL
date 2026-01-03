@@ -20,6 +20,7 @@ import (
 	"github.com/mxV03/wms/ent/picklist"
 	"github.com/mxV03/wms/ent/picktask"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -89,6 +90,7 @@ func checkColumn(t, c string) error {
 			picklist.Table:      picklist.ValidColumn,
 			picktask.Table:      picktask.ValidColumn,
 			stockmovement.Table: stockmovement.ValidColumn,
+			tracking.Table:      tracking.ValidColumn,
 			zone.Table:          zone.ValidColumn,
 		})
 	})
