@@ -15,6 +15,9 @@ import (
 func Log(ctx context.Context, action, entity, entityRef, details string) {
 	actor := strings.TrimSpace(os.Getenv("WMS_ACTOR"))
 	if actor == "" {
+		actor = strings.TrimSpace(os.Getenv("WMS_USER"))
+	}
+	if actor == "" {
 		actor = "system"
 	}
 

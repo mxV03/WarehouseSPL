@@ -32,6 +32,8 @@ type Tx struct {
 	StockMovement *StockMovementClient
 	// Tracking is the client for interacting with the Tracking builders.
 	Tracking *TrackingClient
+	// User is the client for interacting with the User builders.
+	User *UserClient
 	// Zone is the client for interacting with the Zone builders.
 	Zone *ZoneClient
 
@@ -175,6 +177,7 @@ func (tx *Tx) init() {
 	tx.PickTask = NewPickTaskClient(tx.config)
 	tx.StockMovement = NewStockMovementClient(tx.config)
 	tx.Tracking = NewTrackingClient(tx.config)
+	tx.User = NewUserClient(tx.config)
 	tx.Zone = NewZoneClient(tx.config)
 }
 
