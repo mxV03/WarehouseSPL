@@ -8,6 +8,44 @@ import (
 )
 
 var (
+	// AuditEventsColumns holds the columns for the "audit_events" table.
+	AuditEventsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "ts", Type: field.TypeTime},
+		{Name: "action", Type: field.TypeString},
+		{Name: "entity", Type: field.TypeString},
+		{Name: "entity_ref", Type: field.TypeString, Nullable: true, Default: ""},
+		{Name: "actor", Type: field.TypeString, Nullable: true, Default: "system"},
+		{Name: "details", Type: field.TypeString, Nullable: true, Default: ""},
+	}
+	// AuditEventsTable holds the schema information for the "audit_events" table.
+	AuditEventsTable = &schema.Table{
+		Name:       "audit_events",
+		Columns:    AuditEventsColumns,
+		PrimaryKey: []*schema.Column{AuditEventsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "auditevent_ts",
+				Unique:  false,
+				Columns: []*schema.Column{AuditEventsColumns[1]},
+			},
+			{
+				Name:    "auditevent_action",
+				Unique:  false,
+				Columns: []*schema.Column{AuditEventsColumns[2]},
+			},
+			{
+				Name:    "auditevent_entity",
+				Unique:  false,
+				Columns: []*schema.Column{AuditEventsColumns[3]},
+			},
+			{
+				Name:    "auditevent_actor",
+				Unique:  false,
+				Columns: []*schema.Column{AuditEventsColumns[5]},
+			},
+		},
+	}
 	// BinsColumns holds the columns for the "bins" table.
 	BinsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -299,6 +337,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AuditEventsTable,
 		BinsTable,
 		ItemsTable,
 		LocationsTable,

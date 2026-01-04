@@ -9,6 +9,7 @@ import (
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/internal/auditlog"
 )
 
 var (
@@ -78,6 +79,7 @@ func (s *StockService) IN(ctx context.Context, sku, locCode string, qty int, ref
 	if _, err := create.Save(ctx); err != nil {
 		return fmt.Errorf("creating stock movement IN: %w", err)
 	}
+	auditlog.Logf(ctx, "stock.in", "stock_movement", sku+"@"+locCode, "qty=%d ref=%s", qty, ref)
 	return nil
 }
 
@@ -127,6 +129,7 @@ func (s *StockService) OUT(ctx context.Context, sku, locCode string, qty int, re
 	if _, err := create.Save(ctx); err != nil {
 		return fmt.Errorf("creating stock movement OUT: %w", err)
 	}
+	auditlog.Logf(ctx, "stock.in", "stock_movement", sku+"@"+locCode, "qty=%d ref=%s", qty, ref)
 	return nil
 }
 

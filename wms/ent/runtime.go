@@ -5,6 +5,7 @@ package ent
 import (
 	"time"
 
+	"github.com/mxV03/wms/ent/auditevent"
 	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
@@ -22,6 +23,32 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	auditeventFields := schema.AuditEvent{}.Fields()
+	_ = auditeventFields
+	// auditeventDescTs is the schema descriptor for ts field.
+	auditeventDescTs := auditeventFields[0].Descriptor()
+	// auditevent.DefaultTs holds the default value on creation for the ts field.
+	auditevent.DefaultTs = auditeventDescTs.Default.(func() time.Time)
+	// auditeventDescAction is the schema descriptor for action field.
+	auditeventDescAction := auditeventFields[1].Descriptor()
+	// auditevent.ActionValidator is a validator for the "action" field. It is called by the builders before save.
+	auditevent.ActionValidator = auditeventDescAction.Validators[0].(func(string) error)
+	// auditeventDescEntity is the schema descriptor for entity field.
+	auditeventDescEntity := auditeventFields[2].Descriptor()
+	// auditevent.EntityValidator is a validator for the "entity" field. It is called by the builders before save.
+	auditevent.EntityValidator = auditeventDescEntity.Validators[0].(func(string) error)
+	// auditeventDescEntityRef is the schema descriptor for entity_ref field.
+	auditeventDescEntityRef := auditeventFields[3].Descriptor()
+	// auditevent.DefaultEntityRef holds the default value on creation for the entity_ref field.
+	auditevent.DefaultEntityRef = auditeventDescEntityRef.Default.(string)
+	// auditeventDescActor is the schema descriptor for actor field.
+	auditeventDescActor := auditeventFields[4].Descriptor()
+	// auditevent.DefaultActor holds the default value on creation for the actor field.
+	auditevent.DefaultActor = auditeventDescActor.Default.(string)
+	// auditeventDescDetails is the schema descriptor for details field.
+	auditeventDescDetails := auditeventFields[5].Descriptor()
+	// auditevent.DefaultDetails holds the default value on creation for the details field.
+	auditevent.DefaultDetails = auditeventDescDetails.Default.(string)
 	binFields := schema.Bin{}.Fields()
 	_ = binFields
 	// binDescCode is the schema descriptor for code field.

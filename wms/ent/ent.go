@@ -12,6 +12,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/mxV03/wms/ent/auditevent"
 	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
@@ -82,6 +83,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			auditevent.Table:    auditevent.ValidColumn,
 			bin.Table:           bin.ValidColumn,
 			item.Table:          item.ValidColumn,
 			location.Table:      location.ValidColumn,

@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AuditEvent is the predicate function for auditevent builders.
+type AuditEvent func(*sql.Selector)
+
 // Bin is the predicate function for bin builders.
 type Bin func(*sql.Selector)
 

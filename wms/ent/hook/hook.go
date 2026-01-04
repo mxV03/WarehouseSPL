@@ -9,6 +9,18 @@ import (
 	"github.com/mxV03/wms/ent"
 )
 
+// The AuditEventFunc type is an adapter to allow the use of ordinary
+// function as AuditEvent mutator.
+type AuditEventFunc func(context.Context, *ent.AuditEventMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AuditEventFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AuditEventMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AuditEventMutation", m)
+}
+
 // The BinFunc type is an adapter to allow the use of ordinary
 // function as Bin mutator.
 type BinFunc func(context.Context, *ent.BinMutation) (ent.Value, error)

@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// AuditEvent is the client for interacting with the AuditEvent builders.
+	AuditEvent *AuditEventClient
 	// Bin is the client for interacting with the Bin builders.
 	Bin *BinClient
 	// Item is the client for interacting with the Item builders.
@@ -163,6 +165,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.AuditEvent = NewAuditEventClient(tx.config)
 	tx.Bin = NewBinClient(tx.config)
 	tx.Item = NewItemClient(tx.config)
 	tx.Location = NewLocationClient(tx.config)
@@ -182,7 +185,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: Bin.QueryXXX(), the query will be executed
+// applies a query, for example: AuditEvent.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

@@ -15,6 +15,7 @@ import (
 	"entgo.io/ent/dialect"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"github.com/mxV03/wms/ent/auditevent"
 	"github.com/mxV03/wms/ent/bin"
 	"github.com/mxV03/wms/ent/item"
 	"github.com/mxV03/wms/ent/location"
@@ -32,6 +33,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AuditEvent is the client for interacting with the AuditEvent builders.
+	AuditEvent *AuditEventClient
 	// Bin is the client for interacting with the Bin builders.
 	Bin *BinClient
 	// Item is the client for interacting with the Item builders.
@@ -63,6 +66,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AuditEvent = NewAuditEventClient(c.config)
 	c.Bin = NewBinClient(c.config)
 	c.Item = NewItemClient(c.config)
 	c.Location = NewLocationClient(c.config)
@@ -165,6 +169,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:           ctx,
 		config:        cfg,
+		AuditEvent:    NewAuditEventClient(cfg),
 		Bin:           NewBinClient(cfg),
 		Item:          NewItemClient(cfg),
 		Location:      NewLocationClient(cfg),
@@ -194,6 +199,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:           ctx,
 		config:        cfg,
+		AuditEvent:    NewAuditEventClient(cfg),
 		Bin:           NewBinClient(cfg),
 		Item:          NewItemClient(cfg),
 		Location:      NewLocationClient(cfg),
@@ -210,7 +216,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		Bin.
+//		AuditEvent.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -233,8 +239,8 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList, c.PickTask,
-		c.StockMovement, c.Tracking, c.Zone,
+		c.AuditEvent, c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList,
+		c.PickTask, c.StockMovement, c.Tracking, c.Zone,
 	} {
 		n.Use(hooks...)
 	}
@@ -244,8 +250,8 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList, c.PickTask,
-		c.StockMovement, c.Tracking, c.Zone,
+		c.AuditEvent, c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList,
+		c.PickTask, c.StockMovement, c.Tracking, c.Zone,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -254,6 +260,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AuditEventMutation:
+		return c.AuditEvent.mutate(ctx, m)
 	case *BinMutation:
 		return c.Bin.mutate(ctx, m)
 	case *ItemMutation:
@@ -276,6 +284,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Zone.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AuditEventClient is a client for the AuditEvent schema.
+type AuditEventClient struct {
+	config
+}
+
+// NewAuditEventClient returns a client for the AuditEvent from the given config.
+func NewAuditEventClient(c config) *AuditEventClient {
+	return &AuditEventClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `auditevent.Hooks(f(g(h())))`.
+func (c *AuditEventClient) Use(hooks ...Hook) {
+	c.hooks.AuditEvent = append(c.hooks.AuditEvent, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `auditevent.Intercept(f(g(h())))`.
+func (c *AuditEventClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AuditEvent = append(c.inters.AuditEvent, interceptors...)
+}
+
+// Create returns a builder for creating a AuditEvent entity.
+func (c *AuditEventClient) Create() *AuditEventCreate {
+	mutation := newAuditEventMutation(c.config, OpCreate)
+	return &AuditEventCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AuditEvent entities.
+func (c *AuditEventClient) CreateBulk(builders ...*AuditEventCreate) *AuditEventCreateBulk {
+	return &AuditEventCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AuditEventClient) MapCreateBulk(slice any, setFunc func(*AuditEventCreate, int)) *AuditEventCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AuditEventCreateBulk{err: fmt.Errorf("calling to AuditEventClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AuditEventCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AuditEventCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AuditEvent.
+func (c *AuditEventClient) Update() *AuditEventUpdate {
+	mutation := newAuditEventMutation(c.config, OpUpdate)
+	return &AuditEventUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AuditEventClient) UpdateOne(_m *AuditEvent) *AuditEventUpdateOne {
+	mutation := newAuditEventMutation(c.config, OpUpdateOne, withAuditEvent(_m))
+	return &AuditEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AuditEventClient) UpdateOneID(id int) *AuditEventUpdateOne {
+	mutation := newAuditEventMutation(c.config, OpUpdateOne, withAuditEventID(id))
+	return &AuditEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AuditEvent.
+func (c *AuditEventClient) Delete() *AuditEventDelete {
+	mutation := newAuditEventMutation(c.config, OpDelete)
+	return &AuditEventDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AuditEventClient) DeleteOne(_m *AuditEvent) *AuditEventDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AuditEventClient) DeleteOneID(id int) *AuditEventDeleteOne {
+	builder := c.Delete().Where(auditevent.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AuditEventDeleteOne{builder}
+}
+
+// Query returns a query builder for AuditEvent.
+func (c *AuditEventClient) Query() *AuditEventQuery {
+	return &AuditEventQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAuditEvent},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AuditEvent entity by its id.
+func (c *AuditEventClient) Get(ctx context.Context, id int) (*AuditEvent, error) {
+	return c.Query().Where(auditevent.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AuditEventClient) GetX(ctx context.Context, id int) *AuditEvent {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AuditEventClient) Hooks() []Hook {
+	return c.hooks.AuditEvent
+}
+
+// Interceptors returns the client interceptors.
+func (c *AuditEventClient) Interceptors() []Interceptor {
+	return c.inters.AuditEvent
+}
+
+func (c *AuditEventClient) mutate(ctx context.Context, m *AuditEventMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AuditEventCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AuditEventUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AuditEventUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AuditEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AuditEvent mutation op: %q", m.Op())
 	}
 }
 
@@ -2028,11 +2169,11 @@ func (c *ZoneClient) mutate(ctx context.Context, m *ZoneMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Bin, Item, Location, Order, OrderLine, PickList, PickTask, StockMovement,
-		Tracking, Zone []ent.Hook
+		AuditEvent, Bin, Item, Location, Order, OrderLine, PickList, PickTask,
+		StockMovement, Tracking, Zone []ent.Hook
 	}
 	inters struct {
-		Bin, Item, Location, Order, OrderLine, PickList, PickTask, StockMovement,
-		Tracking, Zone []ent.Interceptor
+		AuditEvent, Bin, Item, Location, Order, OrderLine, PickList, PickTask,
+		StockMovement, Tracking, Zone []ent.Interceptor
 	}
 )

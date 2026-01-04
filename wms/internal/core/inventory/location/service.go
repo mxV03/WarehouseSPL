@@ -7,6 +7,7 @@ import (
 
 	"github.com/mxV03/wms/ent"
 	"github.com/mxV03/wms/ent/location"
+	"github.com/mxV03/wms/internal/auditlog"
 )
 
 var (
@@ -54,6 +55,8 @@ func (s *LocationService) CreateLocation(ctx context.Context, code, name string)
 	if err != nil {
 		return nil, fmt.Errorf("creating location: %w", err)
 	}
+
+	auditlog.Log(ctx, "location.create", "location", code, name)
 	return &LocationDTO{
 		ID:   loc.ID,
 		Code: loc.Code,
