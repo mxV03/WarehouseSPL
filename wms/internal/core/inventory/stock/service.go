@@ -129,7 +129,7 @@ func (s *StockService) OUT(ctx context.Context, sku, locCode string, qty int, re
 	if _, err := create.Save(ctx); err != nil {
 		return fmt.Errorf("creating stock movement OUT: %w", err)
 	}
-	auditlog.Logf(ctx, "stock.in", "stock_movement", sku+"@"+locCode, "qty=%d ref=%s", qty, ref)
+	auditlog.Logf(ctx, "stock.out", "stock_movement", sku+"@"+locCode, "qty=%d ref=%s", qty, ref)
 	return nil
 }
 
@@ -150,26 +150,20 @@ func (s *StockService) StockAtLocation(ctx context.Context, sku, locCode string)
 			stockmovement.HasLocationWith(location.Code(locCode)),
 		)
 
-	ins, err := q.Clone().
-		Where(stockmovement.TypeEQ(string(MovementTypeIn))).
-		Aggregate(ent.Sum(stockmovement.FieldQuantity)).
-		Int(ctx)
-
+	ins, err := sumOrZero(ctx,
+		q.Clone().Where(stockmovement.TypeEQ(string(MovementTypeIn))),
+		"aggregating IN stock",
+	)
 	if err != nil {
-		return 0, fmt.Errorf("aggregating IN stock: %w", err)
+		return 0, err
 	}
 
-	outs, err := q.Clone().
-		Where(stockmovement.TypeEQ(string(MovementTypeOut))).
-		Aggregate(ent.Sum(stockmovement.FieldQuantity)).
-		Int(ctx)
-
+	outs, err := sumOrZero(ctx,
+		q.Clone().Where(stockmovement.TypeEQ(string(MovementTypeOut))),
+		"aggregating OUT stock",
+	)
 	if err != nil {
-		if strings.Contains(err.Error(), "converting NULL to int") {
-			outs = 0
-		} else {
-			return 0, fmt.Errorf("aggregating OUT stock: %w", err)
-		}
+		return 0, err
 	}
 
 	return ins - outs, nil
@@ -186,25 +180,32 @@ func (s *StockService) StockBySKU(ctx context.Context, sku string) (int, error) 
 		Where(
 			stockmovement.HasItemWith(item.SKU(sku)),
 		)
-	ins, err := q.Clone().
-		Where(stockmovement.TypeEQ(string(MovementTypeIn))).
-		Aggregate(ent.Sum(stockmovement.FieldQuantity)).
-		Int(ctx)
+	ins, err := sumOrZero(ctx,
+		q.Clone().Where(stockmovement.TypeEQ(string(MovementTypeIn))),
+		"aggregating IN stock",
+	)
 	if err != nil {
-		return 0, fmt.Errorf("aggregating IN stock: %w", err)
+		return 0, err
 	}
 
-	outs, err := q.Clone().
-		Where(stockmovement.TypeEQ(string(MovementTypeOut))).
-		Aggregate(ent.Sum(stockmovement.FieldQuantity)).
-		Int(ctx)
+	outs, err := sumOrZero(ctx,
+		q.Clone().Where(stockmovement.TypeEQ(string(MovementTypeOut))),
+		"aggregating OUT stock",
+	)
 	if err != nil {
-		if strings.Contains(err.Error(), "converting NULL to int") {
-			outs = 0
-		} else {
-			return 0, fmt.Errorf("aggregating OUT stock: %w", err)
-		}
+		return 0, err
 	}
 
 	return ins - outs, nil
+}
+
+func sumOrZero(ctx context.Context, q *ent.StockMovementQuery, label string) (int, error) {
+	v, err := q.Aggregate(ent.Sum(stockmovement.FieldQuantity)).Int(ctx)
+	if err != nil {
+		if strings.Contains(err.Error(), "converting NULL to int") {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("%s: %w", label, err)
+	}
+	return v, nil
 }
