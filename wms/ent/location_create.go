@@ -13,6 +13,7 @@ import (
 	"github.com/mxV03/wms/ent/location"
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/warehouselocation"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -93,6 +94,25 @@ func (_c *LocationCreate) AddBins(v ...*Bin) *LocationCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddBinIDs(ids...)
+}
+
+// SetWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by ID.
+func (_c *LocationCreate) SetWarehouseLinkID(id int) *LocationCreate {
+	_c.mutation.SetWarehouseLinkID(id)
+	return _c
+}
+
+// SetNillableWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by ID if the given value is not nil.
+func (_c *LocationCreate) SetNillableWarehouseLinkID(id *int) *LocationCreate {
+	if id != nil {
+		_c = _c.SetWarehouseLinkID(*id)
+	}
+	return _c
+}
+
+// SetWarehouseLink sets the "warehouse_link" edge to the WarehouseLocation entity.
+func (_c *LocationCreate) SetWarehouseLink(v *WarehouseLocation) *LocationCreate {
+	return _c.SetWarehouseLinkID(v.ID)
 }
 
 // Mutation returns the LocationMutation object of the builder.
@@ -236,6 +256,22 @@ func (_c *LocationCreate) createSpec() (*Location, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.WarehouseLinkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   location.WarehouseLinkTable,
+			Columns: []string{location.WarehouseLinkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(warehouselocation.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

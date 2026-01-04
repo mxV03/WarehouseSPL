@@ -285,6 +285,29 @@ func HasBinsWith(preds ...predicate.Bin) predicate.Location {
 	})
 }
 
+// HasWarehouseLink applies the HasEdge predicate on the "warehouse_link" edge.
+func HasWarehouseLink() predicate.Location {
+	return predicate.Location(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, WarehouseLinkTable, WarehouseLinkColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasWarehouseLinkWith applies the HasEdge predicate on the "warehouse_link" edge with a given conditions (other predicates).
+func HasWarehouseLinkWith(preds ...predicate.WarehouseLocation) predicate.Location {
+	return predicate.Location(func(s *sql.Selector) {
+		step := newWarehouseLinkStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Location) predicate.Location {
 	return predicate.Location(sql.AndPredicates(predicates...))

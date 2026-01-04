@@ -23,6 +23,8 @@ import (
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/user"
+	"github.com/mxV03/wms/ent/warehouse"
+	"github.com/mxV03/wms/ent/warehouselocation"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -84,18 +86,20 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
-			auditevent.Table:    auditevent.ValidColumn,
-			bin.Table:           bin.ValidColumn,
-			item.Table:          item.ValidColumn,
-			location.Table:      location.ValidColumn,
-			order.Table:         order.ValidColumn,
-			orderline.Table:     orderline.ValidColumn,
-			picklist.Table:      picklist.ValidColumn,
-			picktask.Table:      picktask.ValidColumn,
-			stockmovement.Table: stockmovement.ValidColumn,
-			tracking.Table:      tracking.ValidColumn,
-			user.Table:          user.ValidColumn,
-			zone.Table:          zone.ValidColumn,
+			auditevent.Table:        auditevent.ValidColumn,
+			bin.Table:               bin.ValidColumn,
+			item.Table:              item.ValidColumn,
+			location.Table:          location.ValidColumn,
+			order.Table:             order.ValidColumn,
+			orderline.Table:         orderline.ValidColumn,
+			picklist.Table:          picklist.ValidColumn,
+			picktask.Table:          picktask.ValidColumn,
+			stockmovement.Table:     stockmovement.ValidColumn,
+			tracking.Table:          tracking.ValidColumn,
+			user.Table:              user.ValidColumn,
+			warehouse.Table:         warehouse.ValidColumn,
+			warehouselocation.Table: warehouselocation.ValidColumn,
+			zone.Table:              zone.ValidColumn,
 		})
 	})
 	return columnCheck(t, c)

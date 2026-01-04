@@ -30,5 +30,6 @@ func (Location) Edges() []ent.Edge {
 
 		edge.To("zones", Zone.Type),
 		edge.To("bins", Bin.Type),
+		edge.To("warehouse_link", WarehouseLocation.Type).Unique(),
 	}
 }

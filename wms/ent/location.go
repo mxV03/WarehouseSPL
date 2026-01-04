@@ -9,6 +9,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/mxV03/wms/ent/location"
+	"github.com/mxV03/wms/ent/warehouselocation"
 )
 
 // Location is the model entity for the Location schema.
@@ -36,9 +37,11 @@ type LocationEdges struct {
 	Zones []*Zone `json:"zones,omitempty"`
 	// Bins holds the value of the bins edge.
 	Bins []*Bin `json:"bins,omitempty"`
+	// WarehouseLink holds the value of the warehouse_link edge.
+	WarehouseLink *WarehouseLocation `json:"warehouse_link,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [4]bool
+	loadedTypes [5]bool
 }
 
 // MovementsOrErr returns the Movements value or an error if the edge
@@ -75,6 +78,17 @@ func (e LocationEdges) BinsOrErr() ([]*Bin, error) {
 		return e.Bins, nil
 	}
 	return nil, &NotLoadedError{edge: "bins"}
+}
+
+// WarehouseLinkOrErr returns the WarehouseLink value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e LocationEdges) WarehouseLinkOrErr() (*WarehouseLocation, error) {
+	if e.WarehouseLink != nil {
+		return e.WarehouseLink, nil
+	} else if e.loadedTypes[4] {
+		return nil, &NotFoundError{label: warehouselocation.Label}
+	}
+	return nil, &NotLoadedError{edge: "warehouse_link"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -150,6 +164,11 @@ func (_m *Location) QueryZones() *ZoneQuery {
 // QueryBins queries the "bins" edge of the Location entity.
 func (_m *Location) QueryBins() *BinQuery {
 	return NewLocationClient(_m.config).QueryBins(_m)
+}
+
+// QueryWarehouseLink queries the "warehouse_link" edge of the Location entity.
+func (_m *Location) QueryWarehouseLink() *WarehouseLocationQuery {
+	return NewLocationClient(_m.config).QueryWarehouseLink(_m)
 }
 
 // Update returns a builder for updating this Location.

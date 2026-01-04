@@ -315,6 +315,63 @@ var (
 			},
 		},
 	}
+	// WarehousesColumns holds the columns for the "warehouses" table.
+	WarehousesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "code", Type: field.TypeString},
+		{Name: "name", Type: field.TypeString, Nullable: true, Default: ""},
+	}
+	// WarehousesTable holds the schema information for the "warehouses" table.
+	WarehousesTable = &schema.Table{
+		Name:       "warehouses",
+		Columns:    WarehousesColumns,
+		PrimaryKey: []*schema.Column{WarehousesColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "warehouse_code",
+				Unique:  true,
+				Columns: []*schema.Column{WarehousesColumns[1]},
+			},
+		},
+	}
+	// WarehouseLocationsColumns holds the columns for the "warehouse_locations" table.
+	WarehouseLocationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "location_warehouse_link", Type: field.TypeInt, Unique: true},
+		{Name: "warehouse_warehouse_locations", Type: field.TypeInt},
+	}
+	// WarehouseLocationsTable holds the schema information for the "warehouse_locations" table.
+	WarehouseLocationsTable = &schema.Table{
+		Name:       "warehouse_locations",
+		Columns:    WarehouseLocationsColumns,
+		PrimaryKey: []*schema.Column{WarehouseLocationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "warehouse_locations_locations_warehouse_link",
+				Columns:    []*schema.Column{WarehouseLocationsColumns[1]},
+				RefColumns: []*schema.Column{LocationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "warehouse_locations_warehouses_warehouse_locations",
+				Columns:    []*schema.Column{WarehouseLocationsColumns[2]},
+				RefColumns: []*schema.Column{WarehousesColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "warehouselocation_location_warehouse_link",
+				Unique:  true,
+				Columns: []*schema.Column{WarehouseLocationsColumns[1]},
+			},
+			{
+				Name:    "warehouselocation_warehouse_warehouse_locations_location_warehouse_link",
+				Unique:  true,
+				Columns: []*schema.Column{WarehouseLocationsColumns[2], WarehouseLocationsColumns[1]},
+			},
+		},
+	}
 	// ZonesColumns holds the columns for the "zones" table.
 	ZonesColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -381,6 +438,8 @@ var (
 		StockMovementsTable,
 		TrackingsTable,
 		UsersTable,
+		WarehousesTable,
+		WarehouseLocationsTable,
 		ZonesTable,
 		BinItemsTable,
 	}
@@ -398,6 +457,8 @@ func init() {
 	StockMovementsTable.ForeignKeys[0].RefTable = ItemsTable
 	StockMovementsTable.ForeignKeys[1].RefTable = LocationsTable
 	TrackingsTable.ForeignKeys[0].RefTable = OrdersTable
+	WarehouseLocationsTable.ForeignKeys[0].RefTable = LocationsTable
+	WarehouseLocationsTable.ForeignKeys[1].RefTable = WarehousesTable
 	ZonesTable.ForeignKeys[0].RefTable = LocationsTable
 	BinItemsTable.ForeignKeys[0].RefTable = BinsTable
 	BinItemsTable.ForeignKeys[1].RefTable = ItemsTable

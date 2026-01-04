@@ -23,6 +23,8 @@ import (
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/user"
+	"github.com/mxV03/wms/ent/warehouse"
+	"github.com/mxV03/wms/ent/warehouselocation"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -35,18 +37,20 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeAuditEvent    = "AuditEvent"
-	TypeBin           = "Bin"
-	TypeItem          = "Item"
-	TypeLocation      = "Location"
-	TypeOrder         = "Order"
-	TypeOrderLine     = "OrderLine"
-	TypePickList      = "PickList"
-	TypePickTask      = "PickTask"
-	TypeStockMovement = "StockMovement"
-	TypeTracking      = "Tracking"
-	TypeUser          = "User"
-	TypeZone          = "Zone"
+	TypeAuditEvent        = "AuditEvent"
+	TypeBin               = "Bin"
+	TypeItem              = "Item"
+	TypeLocation          = "Location"
+	TypeOrder             = "Order"
+	TypeOrderLine         = "OrderLine"
+	TypePickList          = "PickList"
+	TypePickTask          = "PickTask"
+	TypeStockMovement     = "StockMovement"
+	TypeTracking          = "Tracking"
+	TypeUser              = "User"
+	TypeWarehouse         = "Warehouse"
+	TypeWarehouseLocation = "WarehouseLocation"
+	TypeZone              = "Zone"
 )
 
 // AuditEventMutation represents an operation that mutates the AuditEvent nodes in the graph.
@@ -2036,27 +2040,29 @@ func (m *ItemMutation) ResetEdge(name string) error {
 // LocationMutation represents an operation that mutates the Location nodes in the graph.
 type LocationMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int
-	code               *string
-	name               *string
-	clearedFields      map[string]struct{}
-	movements          map[int]struct{}
-	removedmovements   map[int]struct{}
-	clearedmovements   bool
-	order_lines        map[int]struct{}
-	removedorder_lines map[int]struct{}
-	clearedorder_lines bool
-	zones              map[int]struct{}
-	removedzones       map[int]struct{}
-	clearedzones       bool
-	bins               map[int]struct{}
-	removedbins        map[int]struct{}
-	clearedbins        bool
-	done               bool
-	oldValue           func(context.Context) (*Location, error)
-	predicates         []predicate.Location
+	op                    Op
+	typ                   string
+	id                    *int
+	code                  *string
+	name                  *string
+	clearedFields         map[string]struct{}
+	movements             map[int]struct{}
+	removedmovements      map[int]struct{}
+	clearedmovements      bool
+	order_lines           map[int]struct{}
+	removedorder_lines    map[int]struct{}
+	clearedorder_lines    bool
+	zones                 map[int]struct{}
+	removedzones          map[int]struct{}
+	clearedzones          bool
+	bins                  map[int]struct{}
+	removedbins           map[int]struct{}
+	clearedbins           bool
+	warehouse_link        *int
+	clearedwarehouse_link bool
+	done                  bool
+	oldValue              func(context.Context) (*Location, error)
+	predicates            []predicate.Location
 }
 
 var _ ent.Mutation = (*LocationMutation)(nil)
@@ -2445,6 +2451,45 @@ func (m *LocationMutation) ResetBins() {
 	m.removedbins = nil
 }
 
+// SetWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by id.
+func (m *LocationMutation) SetWarehouseLinkID(id int) {
+	m.warehouse_link = &id
+}
+
+// ClearWarehouseLink clears the "warehouse_link" edge to the WarehouseLocation entity.
+func (m *LocationMutation) ClearWarehouseLink() {
+	m.clearedwarehouse_link = true
+}
+
+// WarehouseLinkCleared reports if the "warehouse_link" edge to the WarehouseLocation entity was cleared.
+func (m *LocationMutation) WarehouseLinkCleared() bool {
+	return m.clearedwarehouse_link
+}
+
+// WarehouseLinkID returns the "warehouse_link" edge ID in the mutation.
+func (m *LocationMutation) WarehouseLinkID() (id int, exists bool) {
+	if m.warehouse_link != nil {
+		return *m.warehouse_link, true
+	}
+	return
+}
+
+// WarehouseLinkIDs returns the "warehouse_link" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// WarehouseLinkID instead. It exists only for internal usage by the builders.
+func (m *LocationMutation) WarehouseLinkIDs() (ids []int) {
+	if id := m.warehouse_link; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetWarehouseLink resets all changes to the "warehouse_link" edge.
+func (m *LocationMutation) ResetWarehouseLink() {
+	m.warehouse_link = nil
+	m.clearedwarehouse_link = false
+}
+
 // Where appends a list predicates to the LocationMutation builder.
 func (m *LocationMutation) Where(ps ...predicate.Location) {
 	m.predicates = append(m.predicates, ps...)
@@ -2595,7 +2640,7 @@ func (m *LocationMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *LocationMutation) AddedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.movements != nil {
 		edges = append(edges, location.EdgeMovements)
 	}
@@ -2607,6 +2652,9 @@ func (m *LocationMutation) AddedEdges() []string {
 	}
 	if m.bins != nil {
 		edges = append(edges, location.EdgeBins)
+	}
+	if m.warehouse_link != nil {
+		edges = append(edges, location.EdgeWarehouseLink)
 	}
 	return edges
 }
@@ -2639,13 +2687,17 @@ func (m *LocationMutation) AddedIDs(name string) []ent.Value {
 			ids = append(ids, id)
 		}
 		return ids
+	case location.EdgeWarehouseLink:
+		if id := m.warehouse_link; id != nil {
+			return []ent.Value{*id}
+		}
 	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *LocationMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.removedmovements != nil {
 		edges = append(edges, location.EdgeMovements)
 	}
@@ -2695,7 +2747,7 @@ func (m *LocationMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *LocationMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 4)
+	edges := make([]string, 0, 5)
 	if m.clearedmovements {
 		edges = append(edges, location.EdgeMovements)
 	}
@@ -2707,6 +2759,9 @@ func (m *LocationMutation) ClearedEdges() []string {
 	}
 	if m.clearedbins {
 		edges = append(edges, location.EdgeBins)
+	}
+	if m.clearedwarehouse_link {
+		edges = append(edges, location.EdgeWarehouseLink)
 	}
 	return edges
 }
@@ -2723,6 +2778,8 @@ func (m *LocationMutation) EdgeCleared(name string) bool {
 		return m.clearedzones
 	case location.EdgeBins:
 		return m.clearedbins
+	case location.EdgeWarehouseLink:
+		return m.clearedwarehouse_link
 	}
 	return false
 }
@@ -2731,6 +2788,9 @@ func (m *LocationMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *LocationMutation) ClearEdge(name string) error {
 	switch name {
+	case location.EdgeWarehouseLink:
+		m.ClearWarehouseLink()
+		return nil
 	}
 	return fmt.Errorf("unknown Location unique edge %s", name)
 }
@@ -2750,6 +2810,9 @@ func (m *LocationMutation) ResetEdge(name string) error {
 		return nil
 	case location.EdgeBins:
 		m.ResetBins()
+		return nil
+	case location.EdgeWarehouseLink:
+		m.ResetWarehouseLink()
 		return nil
 	}
 	return fmt.Errorf("unknown Location edge %s", name)
@@ -7408,6 +7471,891 @@ func (m *UserMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *UserMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown User edge %s", name)
+}
+
+// WarehouseMutation represents an operation that mutates the Warehouse nodes in the graph.
+type WarehouseMutation struct {
+	config
+	op                         Op
+	typ                        string
+	id                         *int
+	code                       *string
+	name                       *string
+	clearedFields              map[string]struct{}
+	warehouse_locations        map[int]struct{}
+	removedwarehouse_locations map[int]struct{}
+	clearedwarehouse_locations bool
+	done                       bool
+	oldValue                   func(context.Context) (*Warehouse, error)
+	predicates                 []predicate.Warehouse
+}
+
+var _ ent.Mutation = (*WarehouseMutation)(nil)
+
+// warehouseOption allows management of the mutation configuration using functional options.
+type warehouseOption func(*WarehouseMutation)
+
+// newWarehouseMutation creates new mutation for the Warehouse entity.
+func newWarehouseMutation(c config, op Op, opts ...warehouseOption) *WarehouseMutation {
+	m := &WarehouseMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWarehouse,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWarehouseID sets the ID field of the mutation.
+func withWarehouseID(id int) warehouseOption {
+	return func(m *WarehouseMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *Warehouse
+		)
+		m.oldValue = func(ctx context.Context) (*Warehouse, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().Warehouse.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWarehouse sets the old Warehouse of the mutation.
+func withWarehouse(node *Warehouse) warehouseOption {
+	return func(m *WarehouseMutation) {
+		m.oldValue = func(context.Context) (*Warehouse, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WarehouseMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WarehouseMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WarehouseMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WarehouseMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().Warehouse.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCode sets the "code" field.
+func (m *WarehouseMutation) SetCode(s string) {
+	m.code = &s
+}
+
+// Code returns the value of the "code" field in the mutation.
+func (m *WarehouseMutation) Code() (r string, exists bool) {
+	v := m.code
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCode returns the old "code" field's value of the Warehouse entity.
+// If the Warehouse object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WarehouseMutation) OldCode(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCode is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCode requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCode: %w", err)
+	}
+	return oldValue.Code, nil
+}
+
+// ResetCode resets all changes to the "code" field.
+func (m *WarehouseMutation) ResetCode() {
+	m.code = nil
+}
+
+// SetName sets the "name" field.
+func (m *WarehouseMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *WarehouseMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the Warehouse entity.
+// If the Warehouse object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *WarehouseMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ClearName clears the value of the "name" field.
+func (m *WarehouseMutation) ClearName() {
+	m.name = nil
+	m.clearedFields[warehouse.FieldName] = struct{}{}
+}
+
+// NameCleared returns if the "name" field was cleared in this mutation.
+func (m *WarehouseMutation) NameCleared() bool {
+	_, ok := m.clearedFields[warehouse.FieldName]
+	return ok
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *WarehouseMutation) ResetName() {
+	m.name = nil
+	delete(m.clearedFields, warehouse.FieldName)
+}
+
+// AddWarehouseLocationIDs adds the "warehouse_locations" edge to the WarehouseLocation entity by ids.
+func (m *WarehouseMutation) AddWarehouseLocationIDs(ids ...int) {
+	if m.warehouse_locations == nil {
+		m.warehouse_locations = make(map[int]struct{})
+	}
+	for i := range ids {
+		m.warehouse_locations[ids[i]] = struct{}{}
+	}
+}
+
+// ClearWarehouseLocations clears the "warehouse_locations" edge to the WarehouseLocation entity.
+func (m *WarehouseMutation) ClearWarehouseLocations() {
+	m.clearedwarehouse_locations = true
+}
+
+// WarehouseLocationsCleared reports if the "warehouse_locations" edge to the WarehouseLocation entity was cleared.
+func (m *WarehouseMutation) WarehouseLocationsCleared() bool {
+	return m.clearedwarehouse_locations
+}
+
+// RemoveWarehouseLocationIDs removes the "warehouse_locations" edge to the WarehouseLocation entity by IDs.
+func (m *WarehouseMutation) RemoveWarehouseLocationIDs(ids ...int) {
+	if m.removedwarehouse_locations == nil {
+		m.removedwarehouse_locations = make(map[int]struct{})
+	}
+	for i := range ids {
+		delete(m.warehouse_locations, ids[i])
+		m.removedwarehouse_locations[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedWarehouseLocations returns the removed IDs of the "warehouse_locations" edge to the WarehouseLocation entity.
+func (m *WarehouseMutation) RemovedWarehouseLocationsIDs() (ids []int) {
+	for id := range m.removedwarehouse_locations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// WarehouseLocationsIDs returns the "warehouse_locations" edge IDs in the mutation.
+func (m *WarehouseMutation) WarehouseLocationsIDs() (ids []int) {
+	for id := range m.warehouse_locations {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetWarehouseLocations resets all changes to the "warehouse_locations" edge.
+func (m *WarehouseMutation) ResetWarehouseLocations() {
+	m.warehouse_locations = nil
+	m.clearedwarehouse_locations = false
+	m.removedwarehouse_locations = nil
+}
+
+// Where appends a list predicates to the WarehouseMutation builder.
+func (m *WarehouseMutation) Where(ps ...predicate.Warehouse) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WarehouseMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WarehouseMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.Warehouse, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WarehouseMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WarehouseMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (Warehouse).
+func (m *WarehouseMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WarehouseMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.code != nil {
+		fields = append(fields, warehouse.FieldCode)
+	}
+	if m.name != nil {
+		fields = append(fields, warehouse.FieldName)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WarehouseMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case warehouse.FieldCode:
+		return m.Code()
+	case warehouse.FieldName:
+		return m.Name()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WarehouseMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case warehouse.FieldCode:
+		return m.OldCode(ctx)
+	case warehouse.FieldName:
+		return m.OldName(ctx)
+	}
+	return nil, fmt.Errorf("unknown Warehouse field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WarehouseMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case warehouse.FieldCode:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCode(v)
+		return nil
+	case warehouse.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	}
+	return fmt.Errorf("unknown Warehouse field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WarehouseMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WarehouseMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WarehouseMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Warehouse numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WarehouseMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(warehouse.FieldName) {
+		fields = append(fields, warehouse.FieldName)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WarehouseMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WarehouseMutation) ClearField(name string) error {
+	switch name {
+	case warehouse.FieldName:
+		m.ClearName()
+		return nil
+	}
+	return fmt.Errorf("unknown Warehouse nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WarehouseMutation) ResetField(name string) error {
+	switch name {
+	case warehouse.FieldCode:
+		m.ResetCode()
+		return nil
+	case warehouse.FieldName:
+		m.ResetName()
+		return nil
+	}
+	return fmt.Errorf("unknown Warehouse field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WarehouseMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.warehouse_locations != nil {
+		edges = append(edges, warehouse.EdgeWarehouseLocations)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WarehouseMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case warehouse.EdgeWarehouseLocations:
+		ids := make([]ent.Value, 0, len(m.warehouse_locations))
+		for id := range m.warehouse_locations {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WarehouseMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedwarehouse_locations != nil {
+		edges = append(edges, warehouse.EdgeWarehouseLocations)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WarehouseMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case warehouse.EdgeWarehouseLocations:
+		ids := make([]ent.Value, 0, len(m.removedwarehouse_locations))
+		for id := range m.removedwarehouse_locations {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WarehouseMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedwarehouse_locations {
+		edges = append(edges, warehouse.EdgeWarehouseLocations)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WarehouseMutation) EdgeCleared(name string) bool {
+	switch name {
+	case warehouse.EdgeWarehouseLocations:
+		return m.clearedwarehouse_locations
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WarehouseMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown Warehouse unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WarehouseMutation) ResetEdge(name string) error {
+	switch name {
+	case warehouse.EdgeWarehouseLocations:
+		m.ResetWarehouseLocations()
+		return nil
+	}
+	return fmt.Errorf("unknown Warehouse edge %s", name)
+}
+
+// WarehouseLocationMutation represents an operation that mutates the WarehouseLocation nodes in the graph.
+type WarehouseLocationMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int
+	clearedFields    map[string]struct{}
+	warehouse        *int
+	clearedwarehouse bool
+	location         *int
+	clearedlocation  bool
+	done             bool
+	oldValue         func(context.Context) (*WarehouseLocation, error)
+	predicates       []predicate.WarehouseLocation
+}
+
+var _ ent.Mutation = (*WarehouseLocationMutation)(nil)
+
+// warehouselocationOption allows management of the mutation configuration using functional options.
+type warehouselocationOption func(*WarehouseLocationMutation)
+
+// newWarehouseLocationMutation creates new mutation for the WarehouseLocation entity.
+func newWarehouseLocationMutation(c config, op Op, opts ...warehouselocationOption) *WarehouseLocationMutation {
+	m := &WarehouseLocationMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeWarehouseLocation,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withWarehouseLocationID sets the ID field of the mutation.
+func withWarehouseLocationID(id int) warehouselocationOption {
+	return func(m *WarehouseLocationMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *WarehouseLocation
+		)
+		m.oldValue = func(ctx context.Context) (*WarehouseLocation, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().WarehouseLocation.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withWarehouseLocation sets the old WarehouseLocation of the mutation.
+func withWarehouseLocation(node *WarehouseLocation) warehouselocationOption {
+	return func(m *WarehouseLocationMutation) {
+		m.oldValue = func(context.Context) (*WarehouseLocation, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m WarehouseLocationMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m WarehouseLocationMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *WarehouseLocationMutation) ID() (id int, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *WarehouseLocationMutation) IDs(ctx context.Context) ([]int, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().WarehouseLocation.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetWarehouseID sets the "warehouse" edge to the Warehouse entity by id.
+func (m *WarehouseLocationMutation) SetWarehouseID(id int) {
+	m.warehouse = &id
+}
+
+// ClearWarehouse clears the "warehouse" edge to the Warehouse entity.
+func (m *WarehouseLocationMutation) ClearWarehouse() {
+	m.clearedwarehouse = true
+}
+
+// WarehouseCleared reports if the "warehouse" edge to the Warehouse entity was cleared.
+func (m *WarehouseLocationMutation) WarehouseCleared() bool {
+	return m.clearedwarehouse
+}
+
+// WarehouseID returns the "warehouse" edge ID in the mutation.
+func (m *WarehouseLocationMutation) WarehouseID() (id int, exists bool) {
+	if m.warehouse != nil {
+		return *m.warehouse, true
+	}
+	return
+}
+
+// WarehouseIDs returns the "warehouse" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// WarehouseID instead. It exists only for internal usage by the builders.
+func (m *WarehouseLocationMutation) WarehouseIDs() (ids []int) {
+	if id := m.warehouse; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetWarehouse resets all changes to the "warehouse" edge.
+func (m *WarehouseLocationMutation) ResetWarehouse() {
+	m.warehouse = nil
+	m.clearedwarehouse = false
+}
+
+// SetLocationID sets the "location" edge to the Location entity by id.
+func (m *WarehouseLocationMutation) SetLocationID(id int) {
+	m.location = &id
+}
+
+// ClearLocation clears the "location" edge to the Location entity.
+func (m *WarehouseLocationMutation) ClearLocation() {
+	m.clearedlocation = true
+}
+
+// LocationCleared reports if the "location" edge to the Location entity was cleared.
+func (m *WarehouseLocationMutation) LocationCleared() bool {
+	return m.clearedlocation
+}
+
+// LocationID returns the "location" edge ID in the mutation.
+func (m *WarehouseLocationMutation) LocationID() (id int, exists bool) {
+	if m.location != nil {
+		return *m.location, true
+	}
+	return
+}
+
+// LocationIDs returns the "location" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// LocationID instead. It exists only for internal usage by the builders.
+func (m *WarehouseLocationMutation) LocationIDs() (ids []int) {
+	if id := m.location; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetLocation resets all changes to the "location" edge.
+func (m *WarehouseLocationMutation) ResetLocation() {
+	m.location = nil
+	m.clearedlocation = false
+}
+
+// Where appends a list predicates to the WarehouseLocationMutation builder.
+func (m *WarehouseLocationMutation) Where(ps ...predicate.WarehouseLocation) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the WarehouseLocationMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *WarehouseLocationMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.WarehouseLocation, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *WarehouseLocationMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *WarehouseLocationMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (WarehouseLocation).
+func (m *WarehouseLocationMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *WarehouseLocationMutation) Fields() []string {
+	fields := make([]string, 0, 0)
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *WarehouseLocationMutation) Field(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *WarehouseLocationMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	return nil, fmt.Errorf("unknown WarehouseLocation field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WarehouseLocationMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown WarehouseLocation field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *WarehouseLocationMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *WarehouseLocationMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *WarehouseLocationMutation) AddField(name string, value ent.Value) error {
+	return fmt.Errorf("unknown WarehouseLocation numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *WarehouseLocationMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *WarehouseLocationMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *WarehouseLocationMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown WarehouseLocation nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *WarehouseLocationMutation) ResetField(name string) error {
+	return fmt.Errorf("unknown WarehouseLocation field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *WarehouseLocationMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.warehouse != nil {
+		edges = append(edges, warehouselocation.EdgeWarehouse)
+	}
+	if m.location != nil {
+		edges = append(edges, warehouselocation.EdgeLocation)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *WarehouseLocationMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case warehouselocation.EdgeWarehouse:
+		if id := m.warehouse; id != nil {
+			return []ent.Value{*id}
+		}
+	case warehouselocation.EdgeLocation:
+		if id := m.location; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *WarehouseLocationMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *WarehouseLocationMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *WarehouseLocationMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedwarehouse {
+		edges = append(edges, warehouselocation.EdgeWarehouse)
+	}
+	if m.clearedlocation {
+		edges = append(edges, warehouselocation.EdgeLocation)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *WarehouseLocationMutation) EdgeCleared(name string) bool {
+	switch name {
+	case warehouselocation.EdgeWarehouse:
+		return m.clearedwarehouse
+	case warehouselocation.EdgeLocation:
+		return m.clearedlocation
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *WarehouseLocationMutation) ClearEdge(name string) error {
+	switch name {
+	case warehouselocation.EdgeWarehouse:
+		m.ClearWarehouse()
+		return nil
+	case warehouselocation.EdgeLocation:
+		m.ClearLocation()
+		return nil
+	}
+	return fmt.Errorf("unknown WarehouseLocation unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *WarehouseLocationMutation) ResetEdge(name string) error {
+	switch name {
+	case warehouselocation.EdgeWarehouse:
+		m.ResetWarehouse()
+		return nil
+	case warehouselocation.EdgeLocation:
+		m.ResetLocation()
+		return nil
+	}
+	return fmt.Errorf("unknown WarehouseLocation edge %s", name)
 }
 
 // ZoneMutation represents an operation that mutates the Zone nodes in the graph.

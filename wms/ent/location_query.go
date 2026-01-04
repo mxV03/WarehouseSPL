@@ -17,20 +17,22 @@ import (
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/warehouselocation"
 	"github.com/mxV03/wms/ent/zone"
 )
 
 // LocationQuery is the builder for querying Location entities.
 type LocationQuery struct {
 	config
-	ctx            *QueryContext
-	order          []location.OrderOption
-	inters         []Interceptor
-	predicates     []predicate.Location
-	withMovements  *StockMovementQuery
-	withOrderLines *OrderLineQuery
-	withZones      *ZoneQuery
-	withBins       *BinQuery
+	ctx               *QueryContext
+	order             []location.OrderOption
+	inters            []Interceptor
+	predicates        []predicate.Location
+	withMovements     *StockMovementQuery
+	withOrderLines    *OrderLineQuery
+	withZones         *ZoneQuery
+	withBins          *BinQuery
+	withWarehouseLink *WarehouseLocationQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -148,6 +150,28 @@ func (_q *LocationQuery) QueryBins() *BinQuery {
 			sqlgraph.From(location.Table, location.FieldID, selector),
 			sqlgraph.To(bin.Table, bin.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, location.BinsTable, location.BinsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryWarehouseLink chains the current query on the "warehouse_link" edge.
+func (_q *LocationQuery) QueryWarehouseLink() *WarehouseLocationQuery {
+	query := (&WarehouseLocationClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, selector),
+			sqlgraph.To(warehouselocation.Table, warehouselocation.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, location.WarehouseLinkTable, location.WarehouseLinkColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -342,15 +366,16 @@ func (_q *LocationQuery) Clone() *LocationQuery {
 		return nil
 	}
 	return &LocationQuery{
-		config:         _q.config,
-		ctx:            _q.ctx.Clone(),
-		order:          append([]location.OrderOption{}, _q.order...),
-		inters:         append([]Interceptor{}, _q.inters...),
-		predicates:     append([]predicate.Location{}, _q.predicates...),
-		withMovements:  _q.withMovements.Clone(),
-		withOrderLines: _q.withOrderLines.Clone(),
-		withZones:      _q.withZones.Clone(),
-		withBins:       _q.withBins.Clone(),
+		config:            _q.config,
+		ctx:               _q.ctx.Clone(),
+		order:             append([]location.OrderOption{}, _q.order...),
+		inters:            append([]Interceptor{}, _q.inters...),
+		predicates:        append([]predicate.Location{}, _q.predicates...),
+		withMovements:     _q.withMovements.Clone(),
+		withOrderLines:    _q.withOrderLines.Clone(),
+		withZones:         _q.withZones.Clone(),
+		withBins:          _q.withBins.Clone(),
+		withWarehouseLink: _q.withWarehouseLink.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -398,6 +423,17 @@ func (_q *LocationQuery) WithBins(opts ...func(*BinQuery)) *LocationQuery {
 		opt(query)
 	}
 	_q.withBins = query
+	return _q
+}
+
+// WithWarehouseLink tells the query-builder to eager-load the nodes that are connected to
+// the "warehouse_link" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *LocationQuery) WithWarehouseLink(opts ...func(*WarehouseLocationQuery)) *LocationQuery {
+	query := (&WarehouseLocationClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withWarehouseLink = query
 	return _q
 }
 
@@ -479,11 +515,12 @@ func (_q *LocationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Loc
 	var (
 		nodes       = []*Location{}
 		_spec       = _q.querySpec()
-		loadedTypes = [4]bool{
+		loadedTypes = [5]bool{
 			_q.withMovements != nil,
 			_q.withOrderLines != nil,
 			_q.withZones != nil,
 			_q.withBins != nil,
+			_q.withWarehouseLink != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -529,6 +566,12 @@ func (_q *LocationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Loc
 		if err := _q.loadBins(ctx, query, nodes,
 			func(n *Location) { n.Edges.Bins = []*Bin{} },
 			func(n *Location, e *Bin) { n.Edges.Bins = append(n.Edges.Bins, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withWarehouseLink; query != nil {
+		if err := _q.loadWarehouseLink(ctx, query, nodes, nil,
+			func(n *Location, e *WarehouseLocation) { n.Edges.WarehouseLink = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -654,6 +697,34 @@ func (_q *LocationQuery) loadBins(ctx context.Context, query *BinQuery, nodes []
 		node, ok := nodeids[*fk]
 		if !ok {
 			return fmt.Errorf(`unexpected referenced foreign-key "location_bins" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *LocationQuery) loadWarehouseLink(ctx context.Context, query *WarehouseLocationQuery, nodes []*Location, init func(*Location), assign func(*Location, *WarehouseLocation)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int]*Location)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+	}
+	query.withFKs = true
+	query.Where(predicate.WarehouseLocation(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(location.WarehouseLinkColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.location_warehouse_link
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "location_warehouse_link" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "location_warehouse_link" returned %v for node %v`, *fk, n.ID)
 		}
 		assign(node, n)
 	}

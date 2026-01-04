@@ -26,6 +26,8 @@ import (
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/user"
+	"github.com/mxV03/wms/ent/warehouse"
+	"github.com/mxV03/wms/ent/warehouselocation"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -56,6 +58,10 @@ type Client struct {
 	Tracking *TrackingClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
+	// Warehouse is the client for interacting with the Warehouse builders.
+	Warehouse *WarehouseClient
+	// WarehouseLocation is the client for interacting with the WarehouseLocation builders.
+	WarehouseLocation *WarehouseLocationClient
 	// Zone is the client for interacting with the Zone builders.
 	Zone *ZoneClient
 }
@@ -80,6 +86,8 @@ func (c *Client) init() {
 	c.StockMovement = NewStockMovementClient(c.config)
 	c.Tracking = NewTrackingClient(c.config)
 	c.User = NewUserClient(c.config)
+	c.Warehouse = NewWarehouseClient(c.config)
+	c.WarehouseLocation = NewWarehouseLocationClient(c.config)
 	c.Zone = NewZoneClient(c.config)
 }
 
@@ -171,20 +179,22 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:           ctx,
-		config:        cfg,
-		AuditEvent:    NewAuditEventClient(cfg),
-		Bin:           NewBinClient(cfg),
-		Item:          NewItemClient(cfg),
-		Location:      NewLocationClient(cfg),
-		Order:         NewOrderClient(cfg),
-		OrderLine:     NewOrderLineClient(cfg),
-		PickList:      NewPickListClient(cfg),
-		PickTask:      NewPickTaskClient(cfg),
-		StockMovement: NewStockMovementClient(cfg),
-		Tracking:      NewTrackingClient(cfg),
-		User:          NewUserClient(cfg),
-		Zone:          NewZoneClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		AuditEvent:        NewAuditEventClient(cfg),
+		Bin:               NewBinClient(cfg),
+		Item:              NewItemClient(cfg),
+		Location:          NewLocationClient(cfg),
+		Order:             NewOrderClient(cfg),
+		OrderLine:         NewOrderLineClient(cfg),
+		PickList:          NewPickListClient(cfg),
+		PickTask:          NewPickTaskClient(cfg),
+		StockMovement:     NewStockMovementClient(cfg),
+		Tracking:          NewTrackingClient(cfg),
+		User:              NewUserClient(cfg),
+		Warehouse:         NewWarehouseClient(cfg),
+		WarehouseLocation: NewWarehouseLocationClient(cfg),
+		Zone:              NewZoneClient(cfg),
 	}, nil
 }
 
@@ -202,20 +212,22 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:           ctx,
-		config:        cfg,
-		AuditEvent:    NewAuditEventClient(cfg),
-		Bin:           NewBinClient(cfg),
-		Item:          NewItemClient(cfg),
-		Location:      NewLocationClient(cfg),
-		Order:         NewOrderClient(cfg),
-		OrderLine:     NewOrderLineClient(cfg),
-		PickList:      NewPickListClient(cfg),
-		PickTask:      NewPickTaskClient(cfg),
-		StockMovement: NewStockMovementClient(cfg),
-		Tracking:      NewTrackingClient(cfg),
-		User:          NewUserClient(cfg),
-		Zone:          NewZoneClient(cfg),
+		ctx:               ctx,
+		config:            cfg,
+		AuditEvent:        NewAuditEventClient(cfg),
+		Bin:               NewBinClient(cfg),
+		Item:              NewItemClient(cfg),
+		Location:          NewLocationClient(cfg),
+		Order:             NewOrderClient(cfg),
+		OrderLine:         NewOrderLineClient(cfg),
+		PickList:          NewPickListClient(cfg),
+		PickTask:          NewPickTaskClient(cfg),
+		StockMovement:     NewStockMovementClient(cfg),
+		Tracking:          NewTrackingClient(cfg),
+		User:              NewUserClient(cfg),
+		Warehouse:         NewWarehouseClient(cfg),
+		WarehouseLocation: NewWarehouseLocationClient(cfg),
+		Zone:              NewZoneClient(cfg),
 	}, nil
 }
 
@@ -246,7 +258,8 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AuditEvent, c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList,
-		c.PickTask, c.StockMovement, c.Tracking, c.User, c.Zone,
+		c.PickTask, c.StockMovement, c.Tracking, c.User, c.Warehouse,
+		c.WarehouseLocation, c.Zone,
 	} {
 		n.Use(hooks...)
 	}
@@ -257,7 +270,8 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AuditEvent, c.Bin, c.Item, c.Location, c.Order, c.OrderLine, c.PickList,
-		c.PickTask, c.StockMovement, c.Tracking, c.User, c.Zone,
+		c.PickTask, c.StockMovement, c.Tracking, c.User, c.Warehouse,
+		c.WarehouseLocation, c.Zone,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -288,6 +302,10 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Tracking.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
+	case *WarehouseMutation:
+		return c.Warehouse.mutate(ctx, m)
+	case *WarehouseLocationMutation:
+		return c.WarehouseLocation.mutate(ctx, m)
 	case *ZoneMutation:
 		return c.Zone.mutate(ctx, m)
 	default:
@@ -955,6 +973,22 @@ func (c *LocationClient) QueryBins(_m *Location) *BinQuery {
 			sqlgraph.From(location.Table, location.FieldID, id),
 			sqlgraph.To(bin.Table, bin.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, location.BinsTable, location.BinsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryWarehouseLink queries the warehouse_link edge of a Location.
+func (c *LocationClient) QueryWarehouseLink(_m *Location) *WarehouseLocationQuery {
+	query := (&WarehouseLocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(location.Table, location.FieldID, id),
+			sqlgraph.To(warehouselocation.Table, warehouselocation.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, false, location.WarehouseLinkTable, location.WarehouseLinkColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -2142,6 +2176,320 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 	}
 }
 
+// WarehouseClient is a client for the Warehouse schema.
+type WarehouseClient struct {
+	config
+}
+
+// NewWarehouseClient returns a client for the Warehouse from the given config.
+func NewWarehouseClient(c config) *WarehouseClient {
+	return &WarehouseClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `warehouse.Hooks(f(g(h())))`.
+func (c *WarehouseClient) Use(hooks ...Hook) {
+	c.hooks.Warehouse = append(c.hooks.Warehouse, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `warehouse.Intercept(f(g(h())))`.
+func (c *WarehouseClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Warehouse = append(c.inters.Warehouse, interceptors...)
+}
+
+// Create returns a builder for creating a Warehouse entity.
+func (c *WarehouseClient) Create() *WarehouseCreate {
+	mutation := newWarehouseMutation(c.config, OpCreate)
+	return &WarehouseCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Warehouse entities.
+func (c *WarehouseClient) CreateBulk(builders ...*WarehouseCreate) *WarehouseCreateBulk {
+	return &WarehouseCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WarehouseClient) MapCreateBulk(slice any, setFunc func(*WarehouseCreate, int)) *WarehouseCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WarehouseCreateBulk{err: fmt.Errorf("calling to WarehouseClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WarehouseCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WarehouseCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Warehouse.
+func (c *WarehouseClient) Update() *WarehouseUpdate {
+	mutation := newWarehouseMutation(c.config, OpUpdate)
+	return &WarehouseUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WarehouseClient) UpdateOne(_m *Warehouse) *WarehouseUpdateOne {
+	mutation := newWarehouseMutation(c.config, OpUpdateOne, withWarehouse(_m))
+	return &WarehouseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WarehouseClient) UpdateOneID(id int) *WarehouseUpdateOne {
+	mutation := newWarehouseMutation(c.config, OpUpdateOne, withWarehouseID(id))
+	return &WarehouseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Warehouse.
+func (c *WarehouseClient) Delete() *WarehouseDelete {
+	mutation := newWarehouseMutation(c.config, OpDelete)
+	return &WarehouseDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WarehouseClient) DeleteOne(_m *Warehouse) *WarehouseDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WarehouseClient) DeleteOneID(id int) *WarehouseDeleteOne {
+	builder := c.Delete().Where(warehouse.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WarehouseDeleteOne{builder}
+}
+
+// Query returns a query builder for Warehouse.
+func (c *WarehouseClient) Query() *WarehouseQuery {
+	return &WarehouseQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWarehouse},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Warehouse entity by its id.
+func (c *WarehouseClient) Get(ctx context.Context, id int) (*Warehouse, error) {
+	return c.Query().Where(warehouse.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WarehouseClient) GetX(ctx context.Context, id int) *Warehouse {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryWarehouseLocations queries the warehouse_locations edge of a Warehouse.
+func (c *WarehouseClient) QueryWarehouseLocations(_m *Warehouse) *WarehouseLocationQuery {
+	query := (&WarehouseLocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(warehouse.Table, warehouse.FieldID, id),
+			sqlgraph.To(warehouselocation.Table, warehouselocation.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, warehouse.WarehouseLocationsTable, warehouse.WarehouseLocationsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WarehouseClient) Hooks() []Hook {
+	return c.hooks.Warehouse
+}
+
+// Interceptors returns the client interceptors.
+func (c *WarehouseClient) Interceptors() []Interceptor {
+	return c.inters.Warehouse
+}
+
+func (c *WarehouseClient) mutate(ctx context.Context, m *WarehouseMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WarehouseCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WarehouseUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WarehouseUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WarehouseDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Warehouse mutation op: %q", m.Op())
+	}
+}
+
+// WarehouseLocationClient is a client for the WarehouseLocation schema.
+type WarehouseLocationClient struct {
+	config
+}
+
+// NewWarehouseLocationClient returns a client for the WarehouseLocation from the given config.
+func NewWarehouseLocationClient(c config) *WarehouseLocationClient {
+	return &WarehouseLocationClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `warehouselocation.Hooks(f(g(h())))`.
+func (c *WarehouseLocationClient) Use(hooks ...Hook) {
+	c.hooks.WarehouseLocation = append(c.hooks.WarehouseLocation, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `warehouselocation.Intercept(f(g(h())))`.
+func (c *WarehouseLocationClient) Intercept(interceptors ...Interceptor) {
+	c.inters.WarehouseLocation = append(c.inters.WarehouseLocation, interceptors...)
+}
+
+// Create returns a builder for creating a WarehouseLocation entity.
+func (c *WarehouseLocationClient) Create() *WarehouseLocationCreate {
+	mutation := newWarehouseLocationMutation(c.config, OpCreate)
+	return &WarehouseLocationCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of WarehouseLocation entities.
+func (c *WarehouseLocationClient) CreateBulk(builders ...*WarehouseLocationCreate) *WarehouseLocationCreateBulk {
+	return &WarehouseLocationCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *WarehouseLocationClient) MapCreateBulk(slice any, setFunc func(*WarehouseLocationCreate, int)) *WarehouseLocationCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &WarehouseLocationCreateBulk{err: fmt.Errorf("calling to WarehouseLocationClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*WarehouseLocationCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &WarehouseLocationCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for WarehouseLocation.
+func (c *WarehouseLocationClient) Update() *WarehouseLocationUpdate {
+	mutation := newWarehouseLocationMutation(c.config, OpUpdate)
+	return &WarehouseLocationUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *WarehouseLocationClient) UpdateOne(_m *WarehouseLocation) *WarehouseLocationUpdateOne {
+	mutation := newWarehouseLocationMutation(c.config, OpUpdateOne, withWarehouseLocation(_m))
+	return &WarehouseLocationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *WarehouseLocationClient) UpdateOneID(id int) *WarehouseLocationUpdateOne {
+	mutation := newWarehouseLocationMutation(c.config, OpUpdateOne, withWarehouseLocationID(id))
+	return &WarehouseLocationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for WarehouseLocation.
+func (c *WarehouseLocationClient) Delete() *WarehouseLocationDelete {
+	mutation := newWarehouseLocationMutation(c.config, OpDelete)
+	return &WarehouseLocationDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *WarehouseLocationClient) DeleteOne(_m *WarehouseLocation) *WarehouseLocationDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *WarehouseLocationClient) DeleteOneID(id int) *WarehouseLocationDeleteOne {
+	builder := c.Delete().Where(warehouselocation.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &WarehouseLocationDeleteOne{builder}
+}
+
+// Query returns a query builder for WarehouseLocation.
+func (c *WarehouseLocationClient) Query() *WarehouseLocationQuery {
+	return &WarehouseLocationQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeWarehouseLocation},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a WarehouseLocation entity by its id.
+func (c *WarehouseLocationClient) Get(ctx context.Context, id int) (*WarehouseLocation, error) {
+	return c.Query().Where(warehouselocation.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *WarehouseLocationClient) GetX(ctx context.Context, id int) *WarehouseLocation {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryWarehouse queries the warehouse edge of a WarehouseLocation.
+func (c *WarehouseLocationClient) QueryWarehouse(_m *WarehouseLocation) *WarehouseQuery {
+	query := (&WarehouseClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(warehouselocation.Table, warehouselocation.FieldID, id),
+			sqlgraph.To(warehouse.Table, warehouse.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, warehouselocation.WarehouseTable, warehouselocation.WarehouseColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryLocation queries the location edge of a WarehouseLocation.
+func (c *WarehouseLocationClient) QueryLocation(_m *WarehouseLocation) *LocationQuery {
+	query := (&LocationClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(warehouselocation.Table, warehouselocation.FieldID, id),
+			sqlgraph.To(location.Table, location.FieldID),
+			sqlgraph.Edge(sqlgraph.O2O, true, warehouselocation.LocationTable, warehouselocation.LocationColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *WarehouseLocationClient) Hooks() []Hook {
+	return c.hooks.WarehouseLocation
+}
+
+// Interceptors returns the client interceptors.
+func (c *WarehouseLocationClient) Interceptors() []Interceptor {
+	return c.inters.WarehouseLocation
+}
+
+func (c *WarehouseLocationClient) mutate(ctx context.Context, m *WarehouseLocationMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&WarehouseLocationCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&WarehouseLocationUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&WarehouseLocationUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&WarehouseLocationDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown WarehouseLocation mutation op: %q", m.Op())
+	}
+}
+
 // ZoneClient is a client for the Zone schema.
 type ZoneClient struct {
 	config
@@ -2311,10 +2659,11 @@ func (c *ZoneClient) mutate(ctx context.Context, m *ZoneMutation) (Value, error)
 type (
 	hooks struct {
 		AuditEvent, Bin, Item, Location, Order, OrderLine, PickList, PickTask,
-		StockMovement, Tracking, User, Zone []ent.Hook
+		StockMovement, Tracking, User, Warehouse, WarehouseLocation, Zone []ent.Hook
 	}
 	inters struct {
 		AuditEvent, Bin, Item, Location, Order, OrderLine, PickList, PickTask,
-		StockMovement, Tracking, User, Zone []ent.Interceptor
+		StockMovement, Tracking, User, Warehouse, WarehouseLocation,
+		Zone []ent.Interceptor
 	}
 )

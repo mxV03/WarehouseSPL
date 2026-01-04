@@ -17,6 +17,7 @@ import (
 	"github.com/mxV03/wms/ent/stockmovement"
 	"github.com/mxV03/wms/ent/tracking"
 	"github.com/mxV03/wms/ent/user"
+	"github.com/mxV03/wms/ent/warehouse"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -188,6 +189,16 @@ func init() {
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(func() time.Time)
 	// user.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
 	user.UpdateDefaultUpdatedAt = userDescUpdatedAt.UpdateDefault.(func() time.Time)
+	warehouseFields := schema.Warehouse{}.Fields()
+	_ = warehouseFields
+	// warehouseDescCode is the schema descriptor for code field.
+	warehouseDescCode := warehouseFields[0].Descriptor()
+	// warehouse.CodeValidator is a validator for the "code" field. It is called by the builders before save.
+	warehouse.CodeValidator = warehouseDescCode.Validators[0].(func(string) error)
+	// warehouseDescName is the schema descriptor for name field.
+	warehouseDescName := warehouseFields[1].Descriptor()
+	// warehouse.DefaultName holds the default value on creation for the name field.
+	warehouse.DefaultName = warehouseDescName.Default.(string)
 	zoneFields := schema.Zone{}.Fields()
 	_ = zoneFields
 	// zoneDescCode is the schema descriptor for code field.

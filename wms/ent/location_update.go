@@ -15,6 +15,7 @@ import (
 	"github.com/mxV03/wms/ent/orderline"
 	"github.com/mxV03/wms/ent/predicate"
 	"github.com/mxV03/wms/ent/stockmovement"
+	"github.com/mxV03/wms/ent/warehouselocation"
 	"github.com/mxV03/wms/ent/zone"
 )
 
@@ -119,6 +120,25 @@ func (_u *LocationUpdate) AddBins(v ...*Bin) *LocationUpdate {
 	return _u.AddBinIDs(ids...)
 }
 
+// SetWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by ID.
+func (_u *LocationUpdate) SetWarehouseLinkID(id int) *LocationUpdate {
+	_u.mutation.SetWarehouseLinkID(id)
+	return _u
+}
+
+// SetNillableWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by ID if the given value is not nil.
+func (_u *LocationUpdate) SetNillableWarehouseLinkID(id *int) *LocationUpdate {
+	if id != nil {
+		_u = _u.SetWarehouseLinkID(*id)
+	}
+	return _u
+}
+
+// SetWarehouseLink sets the "warehouse_link" edge to the WarehouseLocation entity.
+func (_u *LocationUpdate) SetWarehouseLink(v *WarehouseLocation) *LocationUpdate {
+	return _u.SetWarehouseLinkID(v.ID)
+}
+
 // Mutation returns the LocationMutation object of the builder.
 func (_u *LocationUpdate) Mutation() *LocationMutation {
 	return _u.mutation
@@ -206,6 +226,12 @@ func (_u *LocationUpdate) RemoveBins(v ...*Bin) *LocationUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBinIDs(ids...)
+}
+
+// ClearWarehouseLink clears the "warehouse_link" edge to the WarehouseLocation entity.
+func (_u *LocationUpdate) ClearWarehouseLink() *LocationUpdate {
+	_u.mutation.ClearWarehouseLink()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -448,6 +474,35 @@ func (_u *LocationUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.WarehouseLinkCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   location.WarehouseLinkTable,
+			Columns: []string{location.WarehouseLinkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(warehouselocation.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.WarehouseLinkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   location.WarehouseLinkTable,
+			Columns: []string{location.WarehouseLinkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(warehouselocation.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{location.Label}
@@ -556,6 +611,25 @@ func (_u *LocationUpdateOne) AddBins(v ...*Bin) *LocationUpdateOne {
 	return _u.AddBinIDs(ids...)
 }
 
+// SetWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by ID.
+func (_u *LocationUpdateOne) SetWarehouseLinkID(id int) *LocationUpdateOne {
+	_u.mutation.SetWarehouseLinkID(id)
+	return _u
+}
+
+// SetNillableWarehouseLinkID sets the "warehouse_link" edge to the WarehouseLocation entity by ID if the given value is not nil.
+func (_u *LocationUpdateOne) SetNillableWarehouseLinkID(id *int) *LocationUpdateOne {
+	if id != nil {
+		_u = _u.SetWarehouseLinkID(*id)
+	}
+	return _u
+}
+
+// SetWarehouseLink sets the "warehouse_link" edge to the WarehouseLocation entity.
+func (_u *LocationUpdateOne) SetWarehouseLink(v *WarehouseLocation) *LocationUpdateOne {
+	return _u.SetWarehouseLinkID(v.ID)
+}
+
 // Mutation returns the LocationMutation object of the builder.
 func (_u *LocationUpdateOne) Mutation() *LocationMutation {
 	return _u.mutation
@@ -643,6 +717,12 @@ func (_u *LocationUpdateOne) RemoveBins(v ...*Bin) *LocationUpdateOne {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveBinIDs(ids...)
+}
+
+// ClearWarehouseLink clears the "warehouse_link" edge to the WarehouseLocation entity.
+func (_u *LocationUpdateOne) ClearWarehouseLink() *LocationUpdateOne {
+	_u.mutation.ClearWarehouseLink()
+	return _u
 }
 
 // Where appends a list predicates to the LocationUpdate builder.
@@ -908,6 +988,35 @@ func (_u *LocationUpdateOne) sqlSave(ctx context.Context) (_node *Location, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(bin.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.WarehouseLinkCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   location.WarehouseLinkTable,
+			Columns: []string{location.WarehouseLinkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(warehouselocation.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.WarehouseLinkIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2O,
+			Inverse: false,
+			Table:   location.WarehouseLinkTable,
+			Columns: []string{location.WarehouseLinkColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(warehouselocation.FieldID, field.TypeInt),
 			},
 		}
 		for _, k := range nodes {

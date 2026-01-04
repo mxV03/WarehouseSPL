@@ -39,5 +39,11 @@ type Tracking func(*sql.Selector)
 // User is the predicate function for user builders.
 type User func(*sql.Selector)
 
+// Warehouse is the predicate function for warehouse builders.
+type Warehouse func(*sql.Selector)
+
+// WarehouseLocation is the predicate function for warehouselocation builders.
+type WarehouseLocation func(*sql.Selector)
+
 // Zone is the predicate function for zone builders.
 type Zone func(*sql.Selector)

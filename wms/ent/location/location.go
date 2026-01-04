@@ -24,6 +24,8 @@ const (
 	EdgeZones = "zones"
 	// EdgeBins holds the string denoting the bins edge name in mutations.
 	EdgeBins = "bins"
+	// EdgeWarehouseLink holds the string denoting the warehouse_link edge name in mutations.
+	EdgeWarehouseLink = "warehouse_link"
 	// Table holds the table name of the location in the database.
 	Table = "locations"
 	// MovementsTable is the table that holds the movements relation/edge.
@@ -54,6 +56,13 @@ const (
 	BinsInverseTable = "bins"
 	// BinsColumn is the table column denoting the bins relation/edge.
 	BinsColumn = "location_bins"
+	// WarehouseLinkTable is the table that holds the warehouse_link relation/edge.
+	WarehouseLinkTable = "warehouse_locations"
+	// WarehouseLinkInverseTable is the table name for the WarehouseLocation entity.
+	// It exists in this package in order to avoid circular dependency with the "warehouselocation" package.
+	WarehouseLinkInverseTable = "warehouse_locations"
+	// WarehouseLinkColumn is the table column denoting the warehouse_link relation/edge.
+	WarehouseLinkColumn = "location_warehouse_link"
 )
 
 // Columns holds all SQL columns for location fields.
@@ -153,6 +162,13 @@ func ByBins(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 		sqlgraph.OrderByNeighborTerms(s, newBinsStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByWarehouseLinkField orders the results by warehouse_link field.
+func ByWarehouseLinkField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newWarehouseLinkStep(), sql.OrderByField(field, opts...))
+	}
+}
 func newMovementsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -179,5 +195,12 @@ func newBinsStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(BinsInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, BinsTable, BinsColumn),
+	)
+}
+func newWarehouseLinkStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(WarehouseLinkInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2O, false, WarehouseLinkTable, WarehouseLinkColumn),
 	)
 }

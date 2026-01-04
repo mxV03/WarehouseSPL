@@ -141,6 +141,30 @@ func (f UserFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error)
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UserMutation", m)
 }
 
+// The WarehouseFunc type is an adapter to allow the use of ordinary
+// function as Warehouse mutator.
+type WarehouseFunc func(context.Context, *ent.WarehouseMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WarehouseFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WarehouseMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WarehouseMutation", m)
+}
+
+// The WarehouseLocationFunc type is an adapter to allow the use of ordinary
+// function as WarehouseLocation mutator.
+type WarehouseLocationFunc func(context.Context, *ent.WarehouseLocationMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f WarehouseLocationFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.WarehouseLocationMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.WarehouseLocationMutation", m)
+}
+
 // The ZoneFunc type is an adapter to allow the use of ordinary
 // function as Zone mutator.
 type ZoneFunc func(context.Context, *ent.ZoneMutation) (ent.Value, error)
