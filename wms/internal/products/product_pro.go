@@ -8,4 +8,7 @@ var EnabledTags = []string{
 	"pro",
 	"cli",
 	"reporting",
+	"logistics",
+	"picking",
+	"barcode",
 }
