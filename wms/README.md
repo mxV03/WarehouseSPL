@@ -49,35 +49,89 @@ The system is **CLI-first**, modular, and intentionally kept compact.
 ```
 internal/
   features/
-    reporting/
-    logistics/
-    tracking/
     audit/
     auth/
+    barcode/
+    interfaces/
+    logistics/
     multiwarehouse/
+    notifications/
+    picking/
+    reporting/
+    tracking/
   core/
+    inventory/
+    ordermanagement/
 ```
 
 ---
 
 ## Core Features (Always Active)
 
-- Item management (SKU, name, description)
-- Location management
-- Stock movements (IN / OUT)
-- Order handling (inbound / outbound)
-- (Modular CLI)
+- **Item Management**  
+  Management of items including SKU, name, and description
+
+- **Location Management**  
+  Creation and management of storage locations
+
+- **Stock Movements**  
+  Support for goods receipt (IN) and goods issue (OUT)
+
+- **Order Handling**  
+  Processing of inbound and outbound orders
+
+- **Modular CLI**  
+  Originally planned as an optional feature, the modular command-line interface is considered a core feature due to time constraints
 
 ---
 
 ## Optional Features
 
-- **Reporting** – inventory and movement reports
-- **Logistics Management** – zones, bins, item placement
-- **Tracking** – shipment tracking as a separate entity
-- **AuditLog** – system-wide audit events (optional, compile-time)
-- **Authentication** – users, roles, CLI guards
-- **MultiWarehouse** – grouping of locations into warehouses
+- **Authentication**
+  - User login
+  - Role-based access control
+  - Access guards for CLI, API, and WebUI
+- **Barcode**
+  - Barcode generation
+  - Barcode scanning
+  - Integration with inventory and picking workflows
+- **Logistics Management**
+  - Definition of storage locations and zones
+  - User-defined item placement
+  - Inventory overview
+  - Inventory planning
+  - Stock warnings
+  - Reservations
+- **Picking**
+  - Manual creation of pick lists
+  - Pick list monitoring
+  - Optional scanner support
+- **Tracking**
+  - Shipment and delivery tracking
+  - External tracker integration
+- **Reporting**
+  - Inventory reports (current stock levels)
+  - Movement reports (inbound and outbound)
+  - KPI dashboards
+- **Notifications**
+  - Configurable notifications for users and staff
+  - Rule-based notification handling
+- **Automation**
+  - Automatic replenishment
+  - Logistics advisor
+  - Robot advisor
+  - Rule-based automation logic
+- **AuditLog**
+  - System-wide audit event logging
+  - Change and operation tracking
+  - Removable at compile time
+- **MultiWarehouse**
+  - Management of multiple warehouses
+  - Grouping of locations into warehouses
+  - Cross-warehouse data access and reporting
+- **Interfaces**
+  - **CLI** – command-line interface (as discribed under Core Features)
+
 
 Each feature:
 - Exists in its own package
@@ -91,26 +145,46 @@ Each feature:
 Examples:
 
 ```bash
-go run -tags "min" ./cmd/app
-go run -tags "min reporting" ./cmd/app
-go run -tags "min reporting multiwarehouse" ./cmd/app
+go run ./cmd/app
+go run -tags "reporting" ./cmd/app
+go run -tags "reporting multiwarehouse" ./cmd/app
 ```
 
 If a feature tag is missing:
 - Its code is not compiled
 - Its CLI commands do not exist
 - It does not affect the binary
+- Core Features are always part of CLI-Commands.
 
 ---
 
 ## Runtime Variability
 
-Some features use **runtime configuration** via environment variables:
+Runtime variability is used **only for contextual and user-specific information** that cannot be decided at compile time.  
+No features are enabled or disabled at runtime.
 
-- `WMS_ACTOR` – audit actor
-- `WMS_USER`, `WMS_PASS` – authentication
+### Used Environment Variables
 
-Runtime variability is used **only where compile-time variability is not appropriate**.
+- **Authentication**
+  - `WMS_USER` – username for CLI authentication
+  - `WMS_PASS` – password for CLI authentication
+  - Used to authenticate the current user without rebuilding the product
+
+- **AuditLog**
+  - `WMS_ACTOR` – identifies the actor responsible for an action
+  - Used to annotate audit log entries with runtime context
+
+### Scope of Runtime Variability
+
+- Runtime variability is limited to:
+  - user identity
+  - authentication credentials
+  - audit context
+- All structural variability (feature selection) is handled at **compile time**
+
+
+Some features use **runtime configuration** via environment variables.  
+Runtime variability is applied **only where compile-time variability is not appropriate**, e.g. for user-specific or environment-specific behavior.
 
 ---
 
@@ -121,8 +195,8 @@ Invalid feature combinations are prevented using **compile-time guards**.
 Examples:
 
 - `multiwarehouse ⇒ reporting`
-- `audit ⇒ cli`
-- `auth ⇒ audit` (conceptual dependency)
+- `notifications ⇒ reporting`
+- `audit ⇒ auth`
 
 Invalid combinations **fail at compile time**.
 
@@ -130,18 +204,30 @@ Invalid combinations **fail at compile time**.
 
 ## Products (Conceptual)
 
-Products are **conceptual SPL artifacts** that document valid feature combinations.
-They are not Clone-and-Own variants.
+Products are **purely conceptual SPL artifacts** used to describe and document **valid feature combinations** within the product line.  
+They do **not** represent separate codebases, binaries, or Clone-and-Own variants.
+
+Products exist **only as documentation and runtime output**:
+- They are printed at application startup (e.g. in the CLI)
+- They provide transparency about which feature set a build represents
+- They help illustrate the product line structure
+
+**Products do not control variability** and do not influence the build process at runtime.  
+The **actual product derivation is performed exclusively via compile-time build tags**.
 
 Examples:
 
 | Product        | Enabled Features |
 |---------------|------------------|
 | MIN           | Core + CLI |
-| PRO           | Core + CLI + Reporting |
+| PRO           | Core + CLI + Reporting + Logistics + Picking + Barcode|
 | ENTERPRISE    | All features |
 
-Products are displayed at startup and documented separately.
+In summary:
+- Products are **conceptual representations**, not concrete software artifacts
+- Feature selection and product generation are handled entirely at **compile time**
+- Products serve as a **documentation and presentation mechanism** only
+
 
 ---
 

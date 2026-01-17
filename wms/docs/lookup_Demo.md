@@ -1,6 +1,6 @@
 # CLI Commands Reference – Warehouse Management System (SPL)
 
-This document is a **command reference / cheat sheet**.
+This document is a **command reference / cheat sheet** for the Warehouse Management System Software Product Line.
 
 Each CLI command is listed with:
 - Purpose
@@ -22,7 +22,7 @@ location.add <code> <name>
 
 Example:
 ```bash
-go run -tags "min" ./cmd/app location.add L1 "Main Location"
+go run ./cmd/app location.add L1 "Main Location"
 ```
 
 ---
@@ -36,7 +36,7 @@ location.list [limit]
 
 Example:
 ```bash
-go run -tags "min" ./cmd/app location.list
+go run ./cmd/app location.list
 ```
 
 ---
@@ -50,7 +50,7 @@ item.add <sku> <name> <description>
 
 Example:
 ```bash
-go run -tags "min" ./cmd/app item.add SKU1 "Tape" "Packing tape"
+go run ./cmd/app item.add SKU1 "Tape" "Packing tape"
 ```
 
 ---
@@ -60,6 +60,11 @@ List items.
 
 ```bash
 item.list [limit]
+```
+
+Example:
+```bash
+go run ./cmd/app item.list
 ```
 
 ---
@@ -73,7 +78,7 @@ stock.in <sku> <locationCode> <quantity> [reference]
 
 Example:
 ```bash
-go run -tags "min" ./cmd/app stock.in SKU1 L1 10 ref-in
+go run ./cmd/app stock.in SKU1 L1 10 ref-in
 ```
 
 ---
@@ -87,7 +92,7 @@ stock.out <sku> <locationCode> <quantity> [reference]
 
 Example:
 ```bash
-go run -tags "min" ./cmd/app stock.out SKU1 L1 3 ref-out
+go run ./cmd/app stock.out SKU1 L1 3 ref-out
 ```
 
 ---
@@ -103,7 +108,7 @@ reporting.inventory
 
 Example:
 ```bash
-go run -tags "min reporting" ./cmd/app reporting.inventory
+go run -tags "reporting" ./cmd/app reporting.inventory
 ```
 
 ---
@@ -113,6 +118,11 @@ List stock movements.
 
 ```bash
 reporting.movements [limit]
+```
+
+Example:
+```bash
+go run -tags "reporting" ./cmd/app reporting.movements
 ```
 
 ---
@@ -126,7 +136,7 @@ reporting.warehouse.summary <warehouseCode>
 
 Example:
 ```bash
-go run -tags "min reporting multiwarehouse" ./cmd/app reporting.warehouse.summary W1
+go run -tags "reporting multiwarehouse" ./cmd/app reporting.warehouse.summary W1
 ```
 
 ---
@@ -170,7 +180,7 @@ logistics.bin.add <locationCode> <zoneCode> <binCode> [name]
 ---
 
 ### logistics.bin.list
-List bins of a location (optionally filtered by zone).
+List bins of a location.
 
 ```bash
 logistics.bin.list <locationCode> [zoneCode] [limit]
@@ -197,10 +207,59 @@ logistics.bin.unassign <locationCode> <binCode> <sku>
 ---
 
 ### logistics.bin.delete
-Delete a bin (fails if items are assigned).
+Delete a bin.
 
 ```bash
 logistics.bin.delete <locationCode> <binCode>
+```
+
+---
+
+## Picking Feature (`picking`)
+
+### picking.list.create
+Create a pick list.
+
+```bash
+picking.list.create <orderRef>
+```
+
+---
+
+### picking.list.show
+Show pick list details.
+
+```bash
+picking.list.show <orderRef>
+```
+
+---
+
+### picking.list.complete
+Mark a pick list as completed.
+
+```bash
+picking.list.complete <orderRef>
+```
+
+---
+
+## Barcode Feature (`barcode`)
+
+### barcode.generate
+Generate a barcode for an item.
+
+```bash
+barcode.generate <sku>
+```
+
+---
+
+### barcode.scan
+Scan a barcode.
+
+```bash
+barcode.scan <barcodeValue>
 ```
 
 ---
@@ -255,7 +314,7 @@ audit.filter action=<a> entity=<e> actor=<u> limit=<n>
 ---
 
 ### audit.tail
-Show last audit events.
+Show latest audit events.
 
 ```bash
 audit.tail
@@ -301,6 +360,35 @@ auth.whoami
 
 ---
 
+## Notifications Feature (`notifications`)
+
+### notifications.list
+List notification rules.
+
+```bash
+notifications.list [limit]
+```
+
+---
+
+### notifications.add
+Add a notification rule.
+
+```bash
+notifications.add <event> <target>
+```
+
+---
+
+### notifications.remove
+Remove a notification rule.
+
+```bash
+notifications.remove <ruleId>
+```
+
+---
+
 ## MultiWarehouse Feature (`multiwarehouse`)
 
 ### warehouse.add
@@ -341,7 +429,7 @@ warehouse.location.list <warehouseCode> [limit]
 
 ## Notes
 
-- Commands only exist if the corresponding feature is compiled.
-- Missing commands indicate disabled features.
-- Invalid feature combinations fail at compile time.
-
+- Commands exist **only if the corresponding feature is compiled**
+- Missing commands indicate disabled features
+- Invalid feature combinations fail at **compile time**
+- Core commands are always available

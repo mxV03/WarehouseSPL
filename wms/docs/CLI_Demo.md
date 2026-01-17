@@ -25,7 +25,7 @@ All examples use `go run` to make **compile-time variability visible**.
 ### Build & Inspect
 
 ```bash
-go run -tags "min" ./cmd/app --help
+go run -tags " ./cmd/app --help
 ```
 
 Expected:
@@ -39,21 +39,21 @@ Expected:
 ### 2.1 Create Locations
 
 ```bash
-go run -tags "min" ./cmd/app location.add L1 "Main Location"
-go run -tags "min" ./cmd/app location.add L2 "Secondary Location"
+go run ./cmd/app location.add L1 "Main Location"
+go run ./cmd/app location.add L2 "Secondary Location"
 ```
 
 ### 2.2 Create Item
 
 ```bash
-go run -tags "min" ./cmd/app item.add SKU1 "Packing Tape" "Standard tape"
+go run ./cmd/app item.add SKU1 "Packing Tape" "Standard tape"
 ```
 
 ### 2.3 Stock In / Out
 
 ```bash
-go run -tags "min" ./cmd/app stock.in  SKU1 L1 10 ref-in-1
-go run -tags "min" ./cmd/app stock.out SKU1 L1 3  ref-out-1
+go run ./cmd/app stock.in  SKU1 L1 10 ref-in-1
+go run ./cmd/app stock.out SKU1 L1 3  ref-out-1
 ```
 
 ---
@@ -63,7 +63,7 @@ go run -tags "min" ./cmd/app stock.out SKU1 L1 3  ref-out-1
 ### Enable Reporting
 
 ```bash
-go run -tags "min reporting" ./cmd/app --help
+go run -tags "reporting" ./cmd/app --help
 ```
 
 Expected:
@@ -72,7 +72,7 @@ Expected:
 ### Inventory Report
 
 ```bash
-go run -tags "min reporting" ./cmd/app reporting.inventory
+go run -tags "reporting" ./cmd/app reporting.inventory
 ```
 
 ---
@@ -82,7 +82,7 @@ go run -tags "min reporting" ./cmd/app reporting.inventory
 ### Invalid Combination (Compile-Time Error)
 
 ```bash
-go run -tags "min multiwarehouse" ./cmd/app
+go run -tags "multiwarehouse" ./cmd/app
 ```
 
 Expected:
@@ -94,26 +94,26 @@ Expected:
 ### Valid Combination
 
 ```bash
-go run -tags "min reporting multiwarehouse" ./cmd/app --help
+go run -tags "reporting multiwarehouse" ./cmd/app --help
 ```
 
 ### Create Warehouse
 
 ```bash
-go run -tags "min reporting multiwarehouse" ./cmd/app warehouse.add W1 "Warehouse One"
+go run -tags "reporting multiwarehouse" ./cmd/app warehouse.add W1 "Warehouse One"
 ```
 
 ### Assign Locations
 
 ```bash
-go run -tags "min reporting multiwarehouse" ./cmd/app warehouse.location.assign W1 L1
-go run -tags "min reporting multiwarehouse" ./cmd/app warehouse.location.assign W1 L2
+go run -tags "reporting multiwarehouse" ./cmd/app warehouse.location.assign W1 L1
+go run -tags "reporting multiwarehouse" ./cmd/app warehouse.location.assign W1 L2
 ```
 
 ### Warehouse Summary Report
 
 ```bash
-go run -tags "min reporting multiwarehouse" ./cmd/app reporting.warehouse.summary W1
+go run -tags "reporting multiwarehouse" ./cmd/app reporting.warehouse.summary W1
 ```
 
 Expected:
@@ -127,20 +127,20 @@ Expected:
 ### Enable Logistics
 
 ```bash
-go run -tags "min logistics" ./cmd/app --help
+go run -tags "logistics" ./cmd/app --help
 ```
 
 ### Create Zones and Bins
 
 ```bash
-go run -tags "min logistics" ./cmd/app logistics.zone.add L1 Z1 "Zone A"
-go run -tags "min logistics" ./cmd/app logistics.bin.add  L1 Z1 B1 "Bin 1"
+go run -tags "logistics" ./cmd/app logistics.zone.add L1 Z1 "Zone A"
+go run -tags "logistics" ./cmd/app logistics.bin.add  L1 Z1 B1 "Bin 1"
 ```
 
 ### Assign Item to Bin
 
 ```bash
-go run -tags "min logistics" ./cmd/app logistics.bin.assign L1 B1 SKU1
+go run -tags "logistics" ./cmd/app logistics.bin.assign L1 B1 SKU1
 ```
 
 ---
@@ -150,14 +150,14 @@ go run -tags "min logistics" ./cmd/app logistics.bin.assign L1 B1 SKU1
 ### Enable Tracking
 
 ```bash
-go run -tags "min tracking" ./cmd/app --help
+go run -tags "tracking" ./cmd/app --help
 ```
 
 ### Set and Query Tracking
 
 ```bash
-go run -tags "min tracking" ./cmd/app tracking.set OUT-1 TRK123 https://track.example/TRK123 DHL
-go run -tags "min tracking" ./cmd/app tracking.get OUT-1
+go run -tags "tracking" ./cmd/app tracking.set OUT-1 TRK123 https://track.example/TRK123 DHL
+go run -tags "tracking" ./cmd/app tracking.get OUT-1
 ```
 
 ---
@@ -168,14 +168,14 @@ go run -tags "min tracking" ./cmd/app tracking.get OUT-1
 
 ```bash
 $env:WMS_ACTOR="demo-user"
-go run -tags "min audit" ./cmd/app audit.tail
+go run -tags "audit auth" ./cmd/app audit.tail
 ```
 
 ### Trigger Audit Events
 
 ```bash
-go run -tags "min audit" ./cmd/app location.add L3 "Audit Test"
-go run -tags "min audit" ./cmd/app audit.list
+go run -tags "audit auth" ./cmd/app location.add L3 "Audit Test"
+go run -tags "audit auth" ./cmd/app audit.list
 ```
 
 ---
@@ -185,7 +185,7 @@ go run -tags "min audit" ./cmd/app audit.list
 ### Enable Auth
 
 ```bash
-go run -tags "min auth" ./cmd/app --help
+go run -tags "auth" ./cmd/app --help
 ```
 
 
@@ -195,7 +195,7 @@ go run -tags "min auth" ./cmd/app --help
 $env:WMS_USER="worker"
 $env:WMS_PASS="worker1234"
 
-go run -tags "min auth" ./cmd/app auth.whoami
+go run -tags "auth" ./cmd/app auth.whoami
 ```
 
 Hint:
