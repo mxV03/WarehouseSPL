@@ -40,11 +40,17 @@ The system is **CLI-first**, modular, and intentionally kept compact.
 
 ## Architecture Overview
 
-### Modular Feature Structure
+### Modular Feature Structure (Component-Based Implementation)
 
-- Each feature is implemented as its **own Go package**
-- The **Core** is always present
-- Optional features are only compiled when their build tag is enabled
+- Each feature is implemented as an **independent Go package**
+- Variability is realized through **compile-time composition** (build tags)
+- The **core system is unaware of optional features**
+- The primary extension point is the **CLI registry**
+  - Each feature provides a `register.go`
+  - Features register their own CLI commands
+- No feature logic is hard-coded into the core CLI
+- Additional Go interfaces are intentionally kept to a minimum
+- Modularization is achieved through **package boundaries and explicit registration**, not through Clone-and-Own or runtime feature flags
 
 ```
 internal/
